@@ -1,0 +1,17 @@
+backend/node_modules/
+frontend/build/
+frontend/.dart_tool/
+frontend/.packages
+frontend/ios/Pods/
+frontend/android/.gradle/
+frontend/macos/Flutter/ephemeral/
+frontend/windows/flutter/ephemeral/
+frontend/linux/flutter/ephemeral/
+frontend/.pub/
+frontend/.pub-cache/
+frontend/web/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

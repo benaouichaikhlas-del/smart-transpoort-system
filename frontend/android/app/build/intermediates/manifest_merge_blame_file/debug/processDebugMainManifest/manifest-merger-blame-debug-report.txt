@@ -1,0 +1,226 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.example.frontend"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="36" />
+10    <!--
+11         The INTERNET permission is required for development. Specifically,
+12         the Flutter tool needs it to communicate with the running application
+13         to allow setting breakpoints, to provide hot reload, etc.
+14    -->
+15    <uses-permission android:name="android.permission.INTERNET" />
+15-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:5:5-66
+15-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:5:22-64
+16    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+16-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:6:5-78
+16-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:6:22-76
+17    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+17-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:7:5-80
+17-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:7:22-78
+18    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+18-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:8:5-84
+18-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:8:22-82
+19
+20    <queries>
+20-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:44:5-49:15
+21        <intent>
+21-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:45:9-48:18
+22            <action android:name="android.intent.action.PROCESS_TEXT" />
+22-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:46:13-72
+22-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:46:21-70
+23
+24            <data android:mimeType="text/plain" />
+24-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:47:13-50
+24-->C:\Users\benao\Desktop\projet\frontend\android\app\src\main\AndroidManifest.xml:47:19-48
+25        </intent>
+26        <!-- Needs to be explicitly declared on Android R+ -->
+27        <package android:name="com.google.android.apps.maps" />
+27-->[com.google.android.gms:play-services-maps:20.0.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\57194905fdb44b27a5bdf783a9c6bf6c\transformed\play-services-maps-20.0.0\AndroidManifest.xml:29:7-61
+27-->[com.google.android.gms:play-services-maps:20.0.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\57194905fdb44b27a5bdf783a9c6bf6c\transformed\play-services-maps-20.0.0\AndroidManifest.xml:29:16-59
+28    </queries> <!-- Include required permissions for Google Maps API to run. -->
+29    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+29-->[com.google.android.gms:play-services-maps:20.0.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\57194905fdb44b27a5bdf783a9c6bf6c\transformed\play-services-maps-20.0.0\AndroidManifest.xml:20:5-78
+29-->[com.google.android.gms:play-services-maps:20.0.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\57194905fdb44b27a5bdf783a9c6bf6c\transformed\play-services-maps-20.0.0\AndroidManifest.xml:20:22-76
+30
+31    <uses-feature
+31-->[com.google.android.gms:play-services-maps:20.0.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\57194905fdb44b27a5bdf783a9c6bf6c\transformed\play-services-maps-20.0.0\AndroidManifest.xml:22:5-24:33
+32        android:glEsVersion="0x00020000"
+32-->[com.google.android.gms:play-services-maps:20.0.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\57194905fdb44b27a5bdf783a9c6bf6c\transformed\play-services-maps-20.0.0\AndroidManifest.xml:23:8-40
+33        android:required="true" />
+33-->[com.google.android.gms:play-services-maps:20.0.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\57194905fdb44b27a5bdf783a9c6bf6c\transformed\play-services-maps-20.0.0\AndroidManifest.xml:24:8-31
+34
+35    <permission
+35-->[androidx.core:core:1.13.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\54deaae231638f433c92183ba491c96c\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+36        android:name="com.example.frontend.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+36-->[androidx.core:core:1.13.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\54deaae231638f433c92183ba491c96c\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+37        android:protectionLevel="signature" />
+37-->[androidx.core:core:1.13.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\54deaae231638f433c92183ba491c96c\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+38
+39    <uses-permission android:name="com.example.frontend.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+39-->[androidx.core:core:1.13.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\54deaae231638f433c92183ba491c96c\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+39-->[androidx.core:core:1.13.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\54deaae231638f433c92183ba491c96c\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+40
+41    <application
+42        android:name="android.app.Application"
+43        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+43-->[androidx.core:core:1.13.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\54deaae231638f433c92183ba491c96c\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
+44        android:debuggable="true"
+45        android:enableOnBackInvokedCallback="true"
+46        android:extractNativeLibs="false"
+47        android:icon="@mipmap/ic_launcher"
+48        android:label="TransportDZ" >
+49
+50        <!-- ✅ Google Maps API Key -->
+51        <meta-data
+52            android:name="com.google.android.geo.API_KEY"
+53            android:value="AIzaSyCGNXtOCH7O6bkrVWbsk8DpbtXxHM5M1v0" />
+54
+55        <activity
+56            android:name="com.example.frontend.MainActivity"
+57            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+58            android:exported="true"
+59            android:hardwareAccelerated="true"
+60            android:launchMode="singleTop"
+61            android:taskAffinity=""
+62            android:theme="@style/LaunchTheme"
+63            android:windowSoftInputMode="adjustResize" >
+64            <meta-data
+65                android:name="io.flutter.embedding.android.NormalTheme"
+66                android:resource="@style/NormalTheme" />
+67
+68            <intent-filter>
+69                <action android:name="android.intent.action.MAIN" />
+70
+71                <category android:name="android.intent.category.LAUNCHER" />
+72            </intent-filter>
+73        </activity>
+74
+75        <meta-data
+76            android:name="flutterEmbedding"
+77            android:value="2" />
+78
+79        <uses-library
+79-->[:google_maps_flutter_android] C:\Users\benao\AppData\Local\Pub\Cache\hosted\pub.dev\google_maps_flutter_android-2.19.8\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:8:9-10:40
+80            android:name="org.apache.http.legacy"
+80-->[:google_maps_flutter_android] C:\Users\benao\AppData\Local\Pub\Cache\hosted\pub.dev\google_maps_flutter_android-2.19.8\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:9:13-50
+81            android:required="false" />
+81-->[:google_maps_flutter_android] C:\Users\benao\AppData\Local\Pub\Cache\hosted\pub.dev\google_maps_flutter_android-2.19.8\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:10:13-37
+82
+83        <service
+83-->[:geolocator_android] C:\Users\benao\AppData\Local\Pub\Cache\hosted\pub.dev\geolocator_android-4.6.2\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:8:9-12:56
+84            android:name="com.baseflow.geolocator.GeolocatorLocationService"
+84-->[:geolocator_android] C:\Users\benao\AppData\Local\Pub\Cache\hosted\pub.dev\geolocator_android-4.6.2\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:9:13-77
+85            android:enabled="true"
+85-->[:geolocator_android] C:\Users\benao\AppData\Local\Pub\Cache\hosted\pub.dev\geolocator_android-4.6.2\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:10:13-35
+86            android:exported="false"
+86-->[:geolocator_android] C:\Users\benao\AppData\Local\Pub\Cache\hosted\pub.dev\geolocator_android-4.6.2\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:11:13-37
+87            android:foregroundServiceType="location" />
+87-->[:geolocator_android] C:\Users\benao\AppData\Local\Pub\Cache\hosted\pub.dev\geolocator_android-4.6.2\android\build\intermediates\merged_manifest\debug\processDebugManifest\AndroidManifest.xml:12:13-53
+88
+89        <uses-library
+89-->[androidx.window:window:1.2.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\37da9f7d3f78f3f40c5d50af9b1d7736\transformed\window-1.2.0\AndroidManifest.xml:23:9-25:40
+90            android:name="androidx.window.extensions"
+90-->[androidx.window:window:1.2.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\37da9f7d3f78f3f40c5d50af9b1d7736\transformed\window-1.2.0\AndroidManifest.xml:24:13-54
+91            android:required="false" />
+91-->[androidx.window:window:1.2.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\37da9f7d3f78f3f40c5d50af9b1d7736\transformed\window-1.2.0\AndroidManifest.xml:25:13-37
+92        <uses-library
+92-->[androidx.window:window:1.2.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\37da9f7d3f78f3f40c5d50af9b1d7736\transformed\window-1.2.0\AndroidManifest.xml:26:9-28:40
+93            android:name="androidx.window.sidecar"
+93-->[androidx.window:window:1.2.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\37da9f7d3f78f3f40c5d50af9b1d7736\transformed\window-1.2.0\AndroidManifest.xml:27:13-51
+94            android:required="false" />
+94-->[androidx.window:window:1.2.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\37da9f7d3f78f3f40c5d50af9b1d7736\transformed\window-1.2.0\AndroidManifest.xml:28:13-37
+95
+96        <meta-data
+96-->[com.google.maps.android:android-maps-utils:4.1.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\e416d2f206760797d9ee0b1fcfcec627\transformed\android-maps-utils-4.1.0\AndroidManifest.xml:24:9-26:69
+97            android:name="com.google.android.gms.version"
+97-->[com.google.maps.android:android-maps-utils:4.1.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\e416d2f206760797d9ee0b1fcfcec627\transformed\android-maps-utils-4.1.0\AndroidManifest.xml:25:13-58
+98            android:value="@integer/google_play_services_version" />
+98-->[com.google.maps.android:android-maps-utils:4.1.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\e416d2f206760797d9ee0b1fcfcec627\transformed\android-maps-utils-4.1.0\AndroidManifest.xml:26:13-66
+99
+100        <provider
+100-->[com.google.maps.android:android-maps-utils:4.1.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\e416d2f206760797d9ee0b1fcfcec627\transformed\android-maps-utils-4.1.0\AndroidManifest.xml:28:9-36:20
+101            android:name="androidx.startup.InitializationProvider"
+101-->[com.google.maps.android:android-maps-utils:4.1.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\e416d2f206760797d9ee0b1fcfcec627\transformed\android-maps-utils-4.1.0\AndroidManifest.xml:29:13-67
+102            android:authorities="com.example.frontend.androidx-startup"
+102-->[com.google.maps.android:android-maps-utils:4.1.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\e416d2f206760797d9ee0b1fcfcec627\transformed\android-maps-utils-4.1.0\AndroidManifest.xml:30:13-68
+103            android:exported="false" >
+103-->[com.google.maps.android:android-maps-utils:4.1.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\e416d2f206760797d9ee0b1fcfcec627\transformed\android-maps-utils-4.1.0\AndroidManifest.xml:31:13-37
+104            <meta-data
+104-->[com.google.maps.android:android-maps-utils:4.1.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\e416d2f206760797d9ee0b1fcfcec627\transformed\android-maps-utils-4.1.0\AndroidManifest.xml:33:13-35:52
+105                android:name="com.google.maps.android.utils.attribution.AttributionIdInitializer"
+105-->[com.google.maps.android:android-maps-utils:4.1.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\e416d2f206760797d9ee0b1fcfcec627\transformed\android-maps-utils-4.1.0\AndroidManifest.xml:34:17-98
+106                android:value="androidx.startup" />
+106-->[com.google.maps.android:android-maps-utils:4.1.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\e416d2f206760797d9ee0b1fcfcec627\transformed\android-maps-utils-4.1.0\AndroidManifest.xml:35:17-49
+107            <meta-data
+107-->[androidx.emoji2:emoji2:1.3.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\c52ac28aacb17a16b4069520814eb488\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+108                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+108-->[androidx.emoji2:emoji2:1.3.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\c52ac28aacb17a16b4069520814eb488\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+109                android:value="androidx.startup" />
+109-->[androidx.emoji2:emoji2:1.3.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\c52ac28aacb17a16b4069520814eb488\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+110            <meta-data
+110-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\4f628f606fbf7e47df357cc3f3bebb0f\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:29:13-31:52
+111                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+111-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\4f628f606fbf7e47df357cc3f3bebb0f\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:30:17-78
+112                android:value="androidx.startup" />
+112-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\4f628f606fbf7e47df357cc3f3bebb0f\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:31:17-49
+113            <meta-data
+113-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+114                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+114-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+115                android:value="androidx.startup" />
+115-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+116        </provider>
+117
+118        <activity
+118-->[com.google.android.gms:play-services-base:18.5.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\938d5ec66cd1a5caacec0e5c7cb85a35\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:9-173
+119            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+119-->[com.google.android.gms:play-services-base:18.5.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\938d5ec66cd1a5caacec0e5c7cb85a35\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:19-85
+120            android:exported="false"
+120-->[com.google.android.gms:play-services-base:18.5.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\938d5ec66cd1a5caacec0e5c7cb85a35\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:146-170
+121            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+121-->[com.google.android.gms:play-services-base:18.5.0] C:\Users\benao\.gradle\caches\8.11.1\transforms\938d5ec66cd1a5caacec0e5c7cb85a35\transformed\play-services-base-18.5.0\AndroidManifest.xml:5:86-145
+122
+123        <receiver
+123-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+124            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+124-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+125            android:directBootAware="false"
+125-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+126            android:enabled="true"
+126-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+127            android:exported="true"
+127-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+128            android:permission="android.permission.DUMP" >
+128-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+129            <intent-filter>
+129-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+130                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+130-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+130-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+131            </intent-filter>
+132            <intent-filter>
+132-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+133                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+133-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+133-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+134            </intent-filter>
+135            <intent-filter>
+135-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+136                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+136-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+136-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+137            </intent-filter>
+138            <intent-filter>
+138-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+139                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+139-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+139-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\benao\.gradle\caches\8.11.1\transforms\f18fe5a742520d731c4b90b18ea122e2\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+140            </intent-filter>
+141        </receiver>
+142    </application>
+143
+144</manifest>

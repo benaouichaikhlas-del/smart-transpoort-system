@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "com.example.frontend.app-debug-51:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.example.frontend.app-main-53:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.example.frontend.app-debug-51:/drawable_launch_background.xml.flat",
+        "source": "com.example.frontend.app-main-53:/drawable/launch_background.xml"
+    },
+    {
+        "merged": "com.example.frontend.app-debug-51:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.example.frontend.app-main-53:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.example.frontend.app-debug-51:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.example.frontend.app-main-53:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.example.frontend.app-debug-51:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.example.frontend.app-main-53:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.example.frontend.app-debug-51:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.example.frontend.app-main-53:/mipmap-mdpi/ic_launcher.png"
+    }
+]
