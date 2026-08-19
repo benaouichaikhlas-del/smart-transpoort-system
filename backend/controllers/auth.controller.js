@@ -1,10 +1,28 @@
+
 const bcrypt    = require('bcryptjs');
 const jwt       = require('jsonwebtoken');
 const AuthModel = require('../models/auth.model');
 const { envoyerCodeReset } = require('../config/mailer');
-
+ 
+// ⚠️ حيّدنا require('validator') لأنها:
+// 1) حزمة مختلفة عن express-validator (لي ثبتناها)
+// 2) ماشي مستعملة فالكود أصلا (التحقق كيدار يدويا بـ if/typeof)
+// إلا بغيتي تستعمل express-validator بجدية، نديرو middleware منفصل بـ body()/validationResult()
+ 
 const sAuthentifier = async (req, res) => {
   const { email, mot_de_passe } = req.body;
+  if (!email || !mot_de_passe) {
+    return res.status(400).json({
+      code: 'CHAMPS_MANQUANTS',
+      message: 'Email/téléphone et mot de passe requis',
+    });
+  }
+  if (typeof email !== 'string' || typeof mot_de_passe !== 'string') {
+    return res.status(400).json({
+      code: 'FORMAT_INVALIDE',
+      message: 'Format invalide',
+    });
+  }
   try {
     let compte = null;
 

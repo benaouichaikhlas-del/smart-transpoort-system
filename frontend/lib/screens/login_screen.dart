@@ -70,15 +70,8 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
       _naviguerVersHome(auth.user!.role);
-    } else {
-      final l = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(auth.errorMessage ?? l.erreur),
-          backgroundColor: AppTheme.error,
-        ),
-      );
     }
+    // ✅ الخطأ كيبان دبا كبانر جوا الفورم (شوف build())، ماعادش SnackBar
   }
 
   Future<void> _showChangerMotDePasseDialog() async {
@@ -834,6 +827,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ),
                                     ],
                                   ),
+
+                                  // ✅ بانر الخطأ — كيبان غير كاين شي errorMessage
+                                  _ErrorBanner(
+                                    message: auth.errorMessage,
+                                  ),
+
                                   const SizedBox(height: 24),
 
                                   // زر تسجيل الدخول
@@ -956,6 +955,66 @@ class _LoginScreenState extends State<LoginScreen> {
 /// ═══════════════════════════════════════════════════════════════════════
 /// عناصر واجهة مستخدم قابلة لإعادة الاستخدام
 /// ═══════════════════════════════════════════════════════════════════════
+
+/// ✅ بانر خطأ متحرك (fade + slide) كيبان جوا الفورم الزجاجية
+/// - card صغير بخلفية حمراء شفافة، أيقونة تحذير، عنوان + وصف
+/// - كيختفي أوتوماتيكياً كي يولي auth.errorMessage == null
+class _ErrorBanner extends StatelessWidget {
+  final String? message;
+
+  const _ErrorBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasError = message != null && message!.isNotEmpty;
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      alignment: Alignment.topCenter,
+      child: hasError
+          ? Padding(
+              padding: const EdgeInsets.only(top: 14),
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 220),
+                opacity: 1,
+                child: Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.error.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 18,
+                        color: AppTheme.error.withOpacity(0.85),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          message!,
+                          style: TextStyle(
+                            color: AppTheme.error.withOpacity(0.9),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : const SizedBox(width: double.infinity, height: 0),
+    );
+  }
+}
 
 class _BrandBadge extends StatelessWidget {
   const _BrandBadge();

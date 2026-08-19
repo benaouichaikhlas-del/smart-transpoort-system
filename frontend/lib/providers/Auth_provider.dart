@@ -1,6 +1,6 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 
@@ -9,6 +9,8 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   bool _premierConnexion = false;
+
+  final _secureStorage = const FlutterSecureStorage();
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
@@ -22,8 +24,7 @@ class AuthProvider extends ChangeNotifier {
   // ✅ INIT
   // ═══════════════════════════════════════════
   Future<void> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final token = await _secureStorage.read(key: 'token');
 
     if (token != null && token.isNotEmpty) {
       try {
@@ -55,7 +56,7 @@ class AuthProvider extends ChangeNotifier {
         }
       } catch (e) {
         debugPrint('❌ Erreur init: $e');
-        await prefs.remove('token');
+        await _secureStorage.delete(key: 'token');
       }
     }
   }
@@ -85,8 +86,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', token);
+    await _secureStorage.write(key: 'token', value: token);
   }
 
   // ═══════════════════════════════════════════
@@ -131,8 +131,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     _user = null;
     _premierConnexion = false;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
+    await _secureStorage.delete(key: 'token');
     notifyListeners();
   }
 }

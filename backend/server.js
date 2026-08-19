@@ -3,6 +3,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
+const helmet = require('helmet');
 const { Server } = require('socket.io');
 const cron = require('node-cron');
 const pool = require('./db/pool');
@@ -12,16 +13,56 @@ console.log('SMTP_HOST:', process.env.SMTP_HOST);
 console.log('SMTP_USER:', process.env.SMTP_USER);
 console.log('SMTP_PASS:', process.env.SMTP_PASS ? '✅ موجود' : '❌ مفقود');
 console.log('MAIL_FROM:', process.env.MAIL_FROM);
+console.log('🔑 GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? '✅ موجود' : '❌ مفقود');
 
+// ⭐ بدل هاد اللائحة بالدومينات/IP الحقيقيين ديالك (ونفس الشي فـ api_constants.dart تاع Flutter)
+const allowedOrigins = [
+  'http://192.168.1.9:3000',
+  'http://localhost:3000',
+  // زيد دومين الإنتاج هنا كي يكون عندك
+];
+
+// 1️⃣ نصنعو app قبل أي حاجة أخرى
 const app = express();
 const server = http.createServer(app);
 
+// 2️⃣ CORS تاع Socket.IO
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] },
+  cors: {
+    origin: (origin, callback) => {
+      const isLocalhost = origin && /^http:\/\/localhost:\d+$/.test(origin);
+      if (!origin || allowedOrigins.includes(origin) || isLocalhost) {
+        callback(null, true);
+      } else {
+        console.warn('🚫 Socket.IO CORS bloqué pour origin:', origin);
+        callback(new Error('Non autorisé par CORS'));
+      }
+    },
+    methods: ['GET', 'POST'],
+  },
   transports: ['websocket', 'polling'],
 });
 
-app.use(cors());
+app.use(helmet());
+
+// 3️⃣ CORS تاع Express (مرة وحدة فقط)
+// كنسمحو بالطلبات بلا "Origin" (Postman + تطبيقات الموبايل Flutter/Android/iOS عادة مايبعتوهاش)
+// + الدومينات المسموحة فـ allowedOrigins
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      const isLocalhost = origin && /^http:\/\/localhost:\d+$/.test(origin);
+      if (!origin || allowedOrigins.includes(origin) || isLocalhost) {
+        callback(null, true);
+      } else {
+        console.warn('🚫 CORS bloqué pour origin:', origin);
+        callback(new Error('Non autorisé par CORS'));
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  })
+);
+
 app.use(express.json());
 
 app.use((req, res, next) => {

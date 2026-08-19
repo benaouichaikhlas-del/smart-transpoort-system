@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:TransportDZ/screens/avis_rapports_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import '../core/constants/api_constants.dart';
 import '../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 import 'position_vehicules_screen.dart';
@@ -30,11 +33,51 @@ class ProprietaireHomeScreen extends StatelessWidget {
             const SizedBox(height: 10),
             _buildProfileCard(user?.email ?? ''),
             const SizedBox(height: 30),
-            _buildMenuCards(context, user), // ← CORRIGE: passe user
+            _buildMenuCards(context, user),
           ],
         ),
       ),
     );
+  }
+
+  // ═══════════════════════════════════════════════
+  // ⭐ SUIVI BUS — يجيب proprietaire.id الحقيقي قبل الانتقال
+  // (هادي دابا فبلاصتها الصحيحة: خارج build(), مستوى الكلاس)
+  // ═══════════════════════════════════════════════
+  Future<void> _ouvrirSuiviBus(BuildContext context, dynamic user) async {
+    try {
+      final r = await http.get(
+        Uri.parse('${ApiConstants.proprietaire}/mon-id'),
+        headers: {'Authorization': 'Bearer ${user?.token}'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (r.statusCode == 200) {
+        final data = jsonDecode(r.body);
+        final realProprietaireId = data['id'];
+
+        if (!context.mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SuivreBusPage(
+              token: user?.token ?? '',
+              proprietaireId: realProprietaireId,
+            ),
+          ),
+        );
+      } else {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impossible de récupérer votre profil')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Erreur récupération proprietaire id: $e');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur de connexion')),
+      );
+    }
   }
 
   // ═══════════════════════════════════════════════
@@ -114,7 +157,6 @@ class ProprietaireHomeScreen extends StatelessWidget {
   // MENU CARDS
   // ═══════════════════════════════════════════════
   Widget _buildMenuCards(BuildContext context, dynamic user) {
-    // ← CORRIGE: recoit user
     return Column(
       children: [
         // 1. Vehicules
@@ -220,20 +262,14 @@ class ProprietaireHomeScreen extends StatelessWidget {
 
         const SizedBox(height: 14),
 
-        // 8. Position GPS ← CORRIGE: user est maintenant accessible
+        // 8. Position GPS — ⭐ دابا كتنادي على _ouvrirSuiviBus (id صحيح)
         _card(
           context,
           Icons.map_outlined,
           'Position des Vehicules',
           'Carte GPS en temps reel',
           Colors.green,
-          onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => SuivreBusPage(
-                        token: user?.token ?? '',
-                        proprietaireId: user?.id,
-                      ))),
+          onTap: () => _ouvrirSuiviBus(context, user),
         ),
 
         const SizedBox(height: 14),
@@ -252,15 +288,6 @@ class ProprietaireHomeScreen extends StatelessWidget {
         ),
 
         const SizedBox(height: 14),
-
-        // 10. Statistiques (prochainement)
-        _card(
-          context,
-          Icons.bar_chart,
-          'Statistiques',
-          'Revenus et rapports',
-          Colors.greenAccent,
-        ),
       ],
     );
   }

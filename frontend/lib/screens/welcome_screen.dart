@@ -1677,9 +1677,18 @@ class _GlassButton extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.08),
+              // ⭐ خلفية داكنة حقيقية بدل شفافية بيضاء خفيفة —
+              // كانت كتخلي الأيقونة تضيع فوق الخرائط الفاتحة
+              color: const Color(0xFF13091F).withOpacity(0.85),
               border:
-                  Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.4)),
+                  Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.5)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.25),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Center(child: child),
           ),

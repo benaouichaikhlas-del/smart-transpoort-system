@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -22,7 +23,19 @@ class _MapScreenState extends State<MapScreen> {
   static const Color _muted = Color(0xFF64748B);
 
   final MapController _mapCtrl = MapController();
-  final Map<String, Map<String, dynamic>> _buses = {};
+
+  // ══════════════════════════════════════════
+  // ⭐ بيانات الحافلات: 3 خرائط منفصلة
+  // ══════════════════════════════════════════
+  // _busesInfo       → المعلومات الكاملة (ligne, immatriculation...)
+  // _targetPositions → آخر موقع GPS حقيقي وصل من السائق (الهدف)
+  // _displayedPositions → الموقع المعروض دابا (كيتحرك تدريجيا نحو الهدف)
+  final Map<String, Map<String, dynamic>> _busesInfo = {};
+  final Map<String, LatLng> _targetPositions = {};
+  final Map<String, LatLng> _displayedPositions = {};
+
+  Timer? _animationTicker; // كيحرك الماركرات 20 مرة فالثانية
+  Timer? _fallbackTimer; // إلا الـ Socket طاح، يسول HTTP كل 15 ثانية
   IO.Socket? _socket;
 
   List<Map<String, dynamic>> _lignes = [];
@@ -39,98 +52,120 @@ class _MapScreenState extends State<MapScreen> {
     super.initState();
     _chargerLignes();
     _connecterSocket();
+    _startAnimationTicker();
   }
 
   @override
   void dispose() {
     _socket?.disconnect();
+    _socket?.dispose();
+    _animationTicker?.cancel();
+    _fallbackTimer?.cancel();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  // ════════════════════════════════════════════
+  // ⭐ التحريك السلس — القلب ديال الميزة
+  // ════════════════════════════════════════════
+  void _startAnimationTicker() {
+    _animationTicker = Timer.periodic(const Duration(milliseconds: 33), (_) {
+      // 33ms = تقريبا 30 صورة فالثانية، كافي لحركة سلسة بلا ما يتقل على الهاتف
+      if (!mounted) return;
+      if (_targetPositions.isEmpty) return;
+
+      setState(() {
+        _targetPositions.forEach((busId, target) {
+          final current = _displayedPositions[busId] ?? target;
+          // lerp (linear interpolation): كيقرب 10% من المسافة المتبقية كل تيك
+          const factor = 0.10;
+          final newLat =
+              current.latitude + (target.latitude - current.latitude) * factor;
+          final newLng = current.longitude +
+              (target.longitude - current.longitude) * factor;
+          _displayedPositions[busId] = LatLng(newLat, newLng);
+        });
+      });
+    });
   }
 
   // ════════════════════════════════════════════
   // SOCKET.IO
   // ════════════════════════════════════════════
   void _connecterSocket() {
-  _socket = IO.io(
-    ApiConstants.socketUrl,
-    IO.OptionBuilder()
-        .setTransports(['websocket', 'polling'])
-        .enableAutoConnect()
-        .build(),
-  );
+    _socket = IO.io(
+      ApiConstants.socketUrl,
+      IO.OptionBuilder()
+          .setTransports(['websocket', 'polling'])
+          .enableAutoConnect()
+          .build(),
+    );
 
-  _socket!.onConnect((_) {
-    if (mounted) setState(() => _connected = true);
-    if (mounted) _chargerTrajetsActifs(_ligneActive?['id']?.toString());
-  });
-
-  _socket!.onDisconnect((_) {
-    if (mounted) setState(() => _connected = false);
-  });
-
-  // 🔴 مصحح — نتأكد من الـ data قبل ما نستعملو
-  _socket!.on('position_broadcast', (data) {
-    if (!mounted) return;
-    
-    // 🔴 جديد: نتأكد من الـ data
-    if (data == null) {
-      debugPrint('❌ position_broadcast: data is null');
-      return;
-    }
-    
-    final ligneId = data['ligne_id']?.toString();
-    final conducteurId = data['conducteur_id']?.toString();
-    final lat = (data['latitude'] as num?)?.toDouble();  // 🔴 'latitude' ماشي 'lat'
-    final lng = (data['longitude'] as num?)?.toDouble(); // 🔴 'longitude' ماشي 'lng'
-    
-    debugPrint('📍 position_broadcast: ligne=$ligneId, cond=$conducteurId, lat=$lat, lng=$lng');
-
-    if (lat == null || lng == null || conducteurId == null) {
-      debugPrint('❌ position_broadcast: lat/lng/conducteurId null');
-      return;
-    }
-    
-    // 🔴 فلتر — إذا مختار ligne معينة
-    if (_ligneActive != null && ligneId != _ligneActive!['id']?.toString()) {
-      debugPrint('⏭️ position_broadcast: ligne mismatch');
-      return;
-    }
-    
-    // 🔴 جديد: نتأكد من mounted قبل setState
-    if (!mounted) return;
-    
-    setState(() {
-      _buses[conducteurId] = {
-        'lat': lat,
-        'lng': lng,
-        'ligne_id': ligneId,
-        'ligne_numero': data['ligne_numero'],
-        'immatriculation': data['immatriculation'],
-        ...data,
-      };
+    _socket!.onConnect((_) {
+      if (!mounted) return;
+      setState(() => _connected = true);
+      _fallbackTimer?.cancel();
+      _fallbackTimer = null;
+      _chargerTrajetsActifs(_ligneActive?['id']?.toString());
     });
-    
-    debugPrint('✅ Bus ajouté: $conducteurId -> ($lat, $lng)');
-  });
 
-  _socket!.on('trajet_termine', (data) {
-    if (!mounted) return;
-    final conducteurId = data['conducteur_id']?.toString();
-    if (conducteurId == null) return;
-    
-    if (!mounted) return;
-    setState(() => _buses.remove(conducteurId));
-  });
-}
+    _socket!.onDisconnect((_) {
+      if (!mounted) return;
+      setState(() => _connected = false);
+      // إلا الـ Socket طاح، نبداو نسولو HTTP كل 15 ثانية بدل ما نبقاو بلا تحديثات
+      _fallbackTimer ??= Timer.periodic(
+        const Duration(seconds: 15),
+        (_) => _chargerTrajetsActifs(_ligneActive?['id']?.toString()),
+      );
+    });
+
+    _socket!.on('position_broadcast', (data) {
+      if (!mounted || data == null) return;
+
+      final ligneId = data['ligne_id']?.toString();
+      final conducteurId = data['conducteur_id']?.toString();
+      final lat = (data['latitude'] as num?)?.toDouble();
+      final lng = (data['longitude'] as num?)?.toDouble();
+
+      if (lat == null || lng == null || conducteurId == null) return;
+
+      // فلترة: نبينو غير الحافلات ديال الخط المختار (إلا كاين خط مختار)
+      if (_ligneActive != null && ligneId != _ligneActive!['id']?.toString()) {
+        return;
+      }
+
+      setState(() {
+        _busesInfo[conducteurId] = {
+          'ligne_id': ligneId,
+          'ligne_numero': data['ligne_numero'],
+          'immatriculation': data['immatriculation'],
+          ...data,
+        };
+        _targetPositions[conducteurId] = LatLng(lat, lng);
+        // أول مرة نشوفو هاد الحافلة، نحطوها مباشرة (بلا ما "تطير" من نقطة (0,0))
+        _displayedPositions.putIfAbsent(conducteurId, () => LatLng(lat, lng));
+      });
+    });
+
+    _socket!.on('trajet_termine', (data) {
+      if (!mounted) return;
+      final conducteurId = data['conducteur_id']?.toString();
+      if (conducteurId == null) return;
+      setState(() {
+        _busesInfo.remove(conducteurId);
+        _targetPositions.remove(conducteurId);
+        _displayedPositions.remove(conducteurId);
+      });
+    });
+  }
 
   // ════════════════════════════════════════════
-  // API
+  // API — تحميل الخطوط + snapshot أولي
   // ════════════════════════════════════════════
   Future<void> _chargerLignes() async {
     try {
       final r = await http
-          .get(Uri.parse(ApiConstants.lignes)) // ← بدل /publiques
+          .get(Uri.parse(ApiConstants.lignes))
           .timeout(const Duration(seconds: 10));
       if (r.statusCode == 200 && mounted) {
         final List<dynamic> data = jsonDecode(r.body);
@@ -145,55 +180,40 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _chargerTrajetsActifs(String? ligneId) async {
-  try {
-    final url = ligneId != null
-        ? '${ApiConstants.baseUrl}/trajets/actifs?ligne_id=$ligneId'
-        : '${ApiConstants.baseUrl}/trajets/actifs';
+    try {
+      final url = ligneId != null
+          ? '${ApiConstants.baseUrl}/trajets/actifs?ligne_id=$ligneId'
+          : '${ApiConstants.baseUrl}/trajets/actifs';
 
-    debugPrint('🗺️ URL: $url');
+      final r =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
 
-    final r = await http.get(Uri.parse(url))
-        .timeout(const Duration(seconds: 10));
-
-    debugPrint('🗺️ Status: ${r.statusCode}');
-    debugPrint('🗺️ Body: ${r.body.substring(0, r.body.length > 200 ? 200 : r.body.length)}...');
-
-    if (r.statusCode == 200 && mounted) {
-      final List<dynamic> list = jsonDecode(r.body);
-      
-      debugPrint('🗺️ Buses count: ${list.length}');
-
-      if (!mounted) return;
-      
-      setState(() {
-        _buses.clear();
-        for (final t in list) {
-          final lat = (t['latitude'] as num?)?.toDouble();
-          final lng = (t['longitude'] as num?)?.toDouble();
-          final conducteurId = t['conducteur_id']?.toString();
-          
-          if (lat != null && lng != null && conducteurId != null) {
-            _buses[conducteurId] = {
-              'lat': lat,
-              'lng': lng,
-              'ligne_id': t['ligne_id']?.toString(),
-              'ligne_numero': t['ligne_numero'],
-              'immatriculation': t['immatriculation'],
-              ...t,
-            };
+      if (r.statusCode == 200 && mounted) {
+        final List<dynamic> list = jsonDecode(r.body);
+        setState(() {
+          for (final t in list) {
+            final lat = (t['latitude'] as num?)?.toDouble();
+            final lng = (t['longitude'] as num?)?.toDouble();
+            final conducteurId = t['conducteur_id']?.toString();
+            if (lat != null && lng != null && conducteurId != null) {
+              _busesInfo[conducteurId] = {
+                'ligne_id': t['ligne_id']?.toString(),
+                'ligne_numero': t['ligne_numero'],
+                'immatriculation': t['immatriculation'],
+                ...t,
+              };
+              _targetPositions[conducteurId] = LatLng(lat, lng);
+              _displayedPositions.putIfAbsent(
+                  conducteurId, () => LatLng(lat, lng));
+            }
           }
-        }
-      });
-      
-      debugPrint('🗺️ _buses: $_buses');
-    }
-  } catch (e) {
-    debugPrint('🗺️ Erreur: $e');
+        });
+      }
+    } catch (_) {}
   }
-}
 
   // ════════════════════════════════════════════
-  // RECHERCHE
+  // البحث
   // ════════════════════════════════════════════
   void _onSearchChanged(String q) {
     if (q.isEmpty) {
@@ -218,20 +238,19 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _ligneActive = ligne;
       _showSuggestions = false;
-      _buses.clear();
+      // نمسحو غير الحافلات لي ماشي ديال هاد الخط
+      _busesInfo
+          .removeWhere((k, v) => v['ligne_id'] != ligne['id']?.toString());
+      _targetPositions.removeWhere((k, v) => !_busesInfo.containsKey(k));
+      _displayedPositions.removeWhere((k, v) => !_busesInfo.containsKey(k));
     });
     _searchCtrl.text =
         '${ligne['numero'] ?? ''} — ${ligne['nom'] ?? ''}'.trim();
 
-    // ← بدل lat_depart، نجيب الموقع من position_bus بعد التحميل
     _chargerTrajetsActifs(ligne['id']?.toString()).then((_) {
-      if (_buses.isNotEmpty) {
-        final first = _buses.values.first;
-        final lat = first['lat'] as double?;
-        final lng = first['lng'] as double?;
-        if (lat != null && lng != null) {
-          _mapCtrl.move(LatLng(lat, lng), 13);
-        }
+      if (_displayedPositions.isNotEmpty && mounted) {
+        final first = _displayedPositions.values.first;
+        _mapCtrl.move(first, 13);
       }
     });
   }
@@ -240,7 +259,9 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _ligneActive = null;
       _showSuggestions = false;
-      _buses.clear();
+      _busesInfo.clear();
+      _targetPositions.clear();
+      _displayedPositions.clear();
     });
     _searchCtrl.clear();
     _chargerTrajetsActifs(null);
@@ -268,18 +289,17 @@ class _MapScreenState extends State<MapScreen> {
                 subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.example.frontend',
               ),
+              // ⭐ الماركرات كتقرا من _displayedPositions (المتحركة) ماشي _targetPositions
               MarkerLayer(
-                markers: _buses.entries.map((e) {
-                  final lat = e.value['lat'] as double;
-                  final lng = e.value['lng'] as double;
-                  final ligne =
-                      e.value['ligne_numero'] ?? e.value['ligne_id'] ?? '?';
+                markers: _displayedPositions.entries.map((e) {
+                  final info = _busesInfo[e.key] ?? {};
+                  final ligne = info['ligne_numero'] ?? info['ligne_id'] ?? '?';
                   return Marker(
-                    point: LatLng(lat, lng),
+                    point: e.value,
                     width: 40,
                     height: 40,
                     child: GestureDetector(
-                      onTap: () => _showBusInfo(e.value),
+                      onTap: () => _showBusInfo(info),
                       child: Container(
                         decoration: BoxDecoration(
                           color: _primary,

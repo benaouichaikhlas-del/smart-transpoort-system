@@ -57,6 +57,11 @@ exports.demarrer = async (req, res) => {
   }
 };
 
+// ═══════════════════════════════════════════════════════════
+// ✅ الجزء المُصحح ديال updatePosition — بدل بيه القديم
+// فـ trajet.controller.js
+// ═══════════════════════════════════════════════════════════
+
 exports.updatePosition = async (req, res) => {
   const { trajet_id, latitude, longitude, vitesse } = req.body;
 
@@ -72,18 +77,40 @@ exports.updatePosition = async (req, res) => {
     if (!trajet)
       return res.status(404).json({ message: 'Trajet introuvable ou déjà terminé' });
 
+    // ⭐ جديد: نجيبو معلومات الخط والمركبة والسائق باش الفرونت يقدر يبينهم
+    const infoResult = await pool.query(
+      `SELECT l.numero AS ligne_numero, l.nom AS ligne_nom,
+              v.immatriculation, v.marque,
+              c.nom AS conducteur_nom, c.prenom AS conducteur_prenom
+       FROM trajet t
+       LEFT JOIN ligne l ON l.id = t.ligne_id
+       LEFT JOIN vehicule v ON v.id = t.vehicule_id
+       LEFT JOIN conducteur c ON c.id = t.conducteur_id
+       WHERE t.id = $1`,
+      [trajet_id]
+    );
+    const info = infoResult.rows[0] || {};
+
     // Broadcast Socket.io — tous les clients connectés reçoivent
     req.io.emit('position_broadcast', {
-  trajet_id,
-  latitude,
-  longitude,
-  vitesse:          vitesse || 0,
-  ligne_id:         trajet.ligne_id,
-  vehicule_id:      trajet.vehicule_id,
-  conducteur_id:    conducteurId,
-  proprietaire_id:  trajet.proprietaire_id,  // ← جديد
-  timestamp:        new Date().toISOString(),
-});
+      trajet_id,
+      latitude,
+      longitude,
+      vitesse:           vitesse || 0,
+      ligne_id:          trajet.ligne_id,
+      vehicule_id:       trajet.vehicule_id,
+      conducteur_id:     conducteurId,
+      proprietaire_id:   trajet.proprietaire_id,
+      // ⭐ الحقول الجداد لي كانو ناقصين
+      ligne_numero:      info.ligne_numero || '',
+      ligne_nom:         info.ligne_nom || '',
+      immatriculation:   info.immatriculation || '',
+      marque:            info.marque || '',
+      conducteur_nom:    info.conducteur_nom || '',
+      conducteur_prenom: info.conducteur_prenom || '',
+      timestamp:         new Date().toISOString(),
+    });
+
     res.json({ message: 'Position mise à jour' });
 
   } catch (err) {

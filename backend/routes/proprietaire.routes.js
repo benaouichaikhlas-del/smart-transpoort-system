@@ -3,6 +3,7 @@ const router = express.Router();
 
 const {
   demanderInscription,
+  getMonId,
   getEvaluationsProp,
   getFeedbacksProp,
   getSignalementsProp,
@@ -14,7 +15,9 @@ const { verifierToken } = require('../middleware/auth.middleware');
 router.post('/demande', demanderInscription);
 
 // ═══ PROTECTED ═══
+router.get('/mon-id',       verifierToken, getMonId);
 router.get('/evaluations',  verifierToken, getEvaluationsProp);
 router.get('/feedbacks',    verifierToken, getFeedbacksProp);
 router.get('/signalements', verifierToken, getSignalementsProp);
+
 module.exports = router;

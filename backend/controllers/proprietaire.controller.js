@@ -41,6 +41,23 @@ const demanderInscription = async (req, res) => {
   }
 };
 
+// ═══ MON ID (propriétaire.id réel, différent du compte_id) ═══
+// ⭐ نقطة مهمة: req.user.id هو compte_id (جاي من JWT)
+// بصح proprietaire.id هو سطر مختلف فجدول proprietaire
+// هاد الـ route كتحول من واحد للآخر
+const getMonId = async (req, res) => {
+  try {
+    const id = await ProprietaireModel.getId(req.user.id);
+    if (!id) {
+      return res.status(404).json({ message: 'Propriétaire introuvable' });
+    }
+    res.json({ id });
+  } catch (err) {
+    console.error('❌ getMonId:', err);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
+
 // ═══ EVALUATIONS ═══
 const getEvaluationsProp = async (req, res) => {
   try {
@@ -78,11 +95,26 @@ const getSignalementsProp = async (req, res) => {
     console.error(err);
     res.status(500).json({ message: 'Erreur serveur' });
   }
+  const getMonId = async (req, res) => {
+  try {
+    console.log('🔍 req.user:', req.user); // ⭐ زيد هادي مؤقتا
+    const id = await ProprietaireModel.getId(req.user.id);
+    console.log('🔍 proprietaire.id trouvé:', id); // ⭐ زيد هادي زادة
+    if (!id) {
+      return res.status(404).json({ message: 'Propriétaire introuvable' });
+    }
+    res.json({ id });
+  } catch (err) {
+    console.error('❌ getMonId:', err);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
 };
 
 // ═══ EXPORT ═══
 module.exports = {
   demanderInscription,
+  getMonId,
   getEvaluationsProp,
   getFeedbacksProp,
   getSignalementsProp,

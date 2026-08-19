@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const pool = require('../db/pool');
+const rateLimit = require('express-rate-limit');
 
 const { verifierToken } = require('../middleware/auth.middleware');
 const {
@@ -12,6 +13,21 @@ const {
 
 // ====== IMPORT MAILER ======
 const { envoyerCodeReset, envoyerCodeVerification } = require('../config/mailer');
+
+// ═══════════════════════════════════════════════════════════════════════
+// 🛡️ RATE LIMITER — تحديد محاولات تسجيل الدخول
+// ═══════════════════════════════════════════════════════════════════════
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 دقيقة
+  max: 5,                   // 5 محاولات كحد أقصى
+  message: { message: 'Trop de tentatives, réessayez dans 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    console.warn('🛑 RATE LIMIT déclenché pour IP:', req.ip); // ⭐ تصحيح مؤقت
+    res.status(options.statusCode).json(options.message);
+  },
+});
 
 // ═══════════════════════════════════════════════════════════════════════
 // 📧 VÉRIFICATION EMAIL — Inscription
@@ -104,8 +120,8 @@ router.post('/verifier-code', async (req, res) => {
 // 🔐 ROUTES EXISTANTES
 // ═══════════════════════════════════════════════════════════════════════
 
-// POST /api/auth/login
-router.post('/login', sAuthentifier);
+// POST /api/auth/login  (⭐ محمي بـ rate limiter)
+router.post('/login', loginLimiter, sAuthentifier);
 
 // POST /api/auth/forgot-password
 router.post('/forgot-password', demanderResetMotDePasse);
