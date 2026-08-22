@@ -1129,10 +1129,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               Icons.route, l.lignes, () => setState(() => _selectedIndex = 1)),
           _drawerItem(Icons.campaign_rounded, l.annonces,
               () => setState(() => _selectedIndex = 3)),
-          _drawerItem(Icons.warning_amber, l.retardsPannes, () {},
-              color: _gold),
-          _drawerItem(Icons.info, l.informations, () {}),
-          Divider(color: _white.withOpacity(0.08)),
           _drawerItem(Icons.language_rounded, '${l.language} / اللغة',
               _showLanguageSheet),
           _drawerItem(Icons.login_rounded, l.seConnecter, () {
