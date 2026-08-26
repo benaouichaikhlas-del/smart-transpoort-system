@@ -6,24 +6,20 @@ const demanderInscription = async (req, res) => {
   try {
     const { nom, prenom, age, email, tel, adresse, mot_de_passe, numero_proprietaire } = req.body;
 
-    // ✅ تحقق 1: الرقم موجود؟
     const numero = await ProprietaireModel.findNumero(numero_proprietaire);
     if (!numero) {
       return res.status(400).json({ message: 'Numéro immatriculation non reconnu' });
     }
 
-    // ✅ تحقق 2: مستعمل بعد قبول الأدمين؟
     if (numero.est_utilise) {
       return res.status(400).json({ message: 'Numéro immatriculation déjà utilisé' });
     }
 
-    // ✅ تحقق 3: في دمندة en_attente أو accepte بنفس الرقم؟
     const demandeNumero = await ProprietaireModel.findDemandeByNumero(numero_proprietaire);
     if (demandeNumero) {
       return res.status(400).json({ message: 'Numéro immatriculation déjà utilisé' });
     }
 
-    // ✅ تحقق 4: رقم الهاتف مستعمل؟
     const demandeTel = await ProprietaireModel.findDemandeByTel(tel);
     if (demandeTel) {
       return res.status(400).json({ message: 'Numéro de téléphone déjà utilisé' });
@@ -41,10 +37,7 @@ const demanderInscription = async (req, res) => {
   }
 };
 
-// ═══ MON ID (propriétaire.id réel, différent du compte_id) ═══
-// ⭐ نقطة مهمة: req.user.id هو compte_id (جاي من JWT)
-// بصح proprietaire.id هو سطر مختلف فجدول proprietaire
-// هاد الـ route كتحول من واحد للآخر
+// ═══ MON ID ═══
 const getMonId = async (req, res) => {
   try {
     const id = await ProprietaireModel.getId(req.user.id);
@@ -95,20 +88,35 @@ const getSignalementsProp = async (req, res) => {
     console.error(err);
     res.status(500).json({ message: 'Erreur serveur' });
   }
-  const getMonId = async (req, res) => {
+};
+
+// ═══════════════════════════════════════════
+// ⭐ DASHBOARD STATS — جديد
+// ═══════════════════════════════════════════
+const getDashboardStats = async (req, res) => {
   try {
-    console.log('🔍 req.user:', req.user); // ⭐ زيد هادي مؤقتا
-    const id = await ProprietaireModel.getId(req.user.id);
-    console.log('🔍 proprietaire.id trouvé:', id); // ⭐ زيد هادي زادة
-    if (!id) {
+    // req.user.id = compte_id (من JWT)
+    // نحولوه لـ proprietaire.id
+    const propId = await ProprietaireModel.getId(req.user.id);
+    if (!propId) {
       return res.status(404).json({ message: 'Propriétaire introuvable' });
     }
-    res.json({ id });
+
+    const vehicules = await ProprietaireModel.countVehicules(propId);
+    const conducteurs = await ProprietaireModel.countConducteurs(propId);
+    const lignes = await ProprietaireModel.countLignes(propId);
+    const annonces = await ProprietaireModel.countAnnonces(propId);
+
+    res.json({
+      vehicules: parseInt(vehicules),
+      conducteurs: parseInt(conducteurs),
+      lignes: parseInt(lignes),
+      annonces: parseInt(annonces),
+    });
   } catch (err) {
-    console.error('❌ getMonId:', err);
+    console.error('❌ Dashboard stats error:', err);
     res.status(500).json({ message: 'Erreur serveur' });
   }
-};
 };
 
 // ═══ EXPORT ═══
@@ -118,4 +126,5 @@ module.exports = {
   getEvaluationsProp,
   getFeedbacksProp,
   getSignalementsProp,
+  getDashboardStats, // ⭐ جديد
 };

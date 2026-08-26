@@ -6,19 +6,25 @@ import 'providers/auth_provider.dart';
 import 'providers/locale_provider.dart';
 import 'screens/welcome_screen.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final authProvider = AuthProvider();
+  await authProvider.init();
+
+  runApp(MyApp(authProvider: authProvider));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AuthProvider authProvider;
+  const MyApp({super.key, required this.authProvider});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: authProvider),
       ],
       child: Consumer<LocaleProvider>(
         builder: (context, localeProvider, child) {

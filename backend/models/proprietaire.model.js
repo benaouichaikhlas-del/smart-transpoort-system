@@ -2,6 +2,7 @@ const pool = require('../db/pool');
 
 const ProprietaireModel = {
 
+  // ═══ HELPERS ═══
   getId: async (compteId) => {
     const r = await pool.query(
       'SELECT id FROM proprietaire WHERE compte_id = $1', [compteId]
@@ -9,6 +10,7 @@ const ProprietaireModel = {
     return r.rows[0]?.id;
   },
 
+  // ═══ INSCRIPTION ═══
   findNumero: async (numero) => {
     const r = await pool.query(
       `SELECT id, est_utilise FROM numeros_proprietaire WHERE numero = $1`,
@@ -46,6 +48,7 @@ const ProprietaireModel = {
     );
   },
 
+  // ═══ FEEDBACKS / EVALUATIONS / SIGNALEMENTS ═══
   getFeedbacksPourMoi: async (proprietaireId) => {
     const r = await pool.query(
       `SELECT f.*, l.numero AS ligne_numero, l.nom AS ligne_nom,
@@ -90,6 +93,41 @@ const ProprietaireModel = {
       [proprietaireId]
     );
     return r.rows;
+  },
+
+  // ═══════════════════════════════════════════
+  // ⭐ DASHBOARD STATS — جديد
+  // ═══════════════════════════════════════════
+  countVehicules: async (proprietaireId) => {
+    const r = await pool.query(
+      'SELECT COUNT(*) FROM vehicule WHERE proprietaire_id = $1',
+      [proprietaireId]
+    );
+    return r.rows[0].count;
+  },
+
+  countConducteurs: async (proprietaireId) => {
+    const r = await pool.query(
+      'SELECT COUNT(*) FROM conducteur WHERE proprietaire_id = $1',
+      [proprietaireId]
+    );
+    return r.rows[0].count;
+  },
+
+  countLignes: async (proprietaireId) => {
+    const r = await pool.query(
+      'SELECT COUNT(*) FROM ligne WHERE proprietaire_id = $1',
+      [proprietaireId]
+    );
+    return r.rows[0].count;
+  },
+
+  countAnnonces: async (proprietaireId) => {
+    const r = await pool.query(
+      'SELECT COUNT(*) FROM annonce WHERE proprietaire_id = $1',
+      [proprietaireId]
+    );
+    return r.rows[0].count;
   },
 
 };

@@ -168,9 +168,6 @@ class _PassagerHomeScreenState extends State<PassagerHomeScreen> {
                   Icons.edit_outlined, 'Modifier compte', Colors.blue),
             ),
             const SizedBox(height: 10),
-            _profilItem(Icons.notifications_outlined, 'Notifications',
-                AppTheme.warning),
-            const SizedBox(height: 10),
             _profilItem(Icons.delete_outline, 'Supprimer compte', Colors.red),
             const Spacer(),
             SizedBox(
@@ -223,165 +220,192 @@ class _PassagerHomeScreenState extends State<PassagerHomeScreen> {
   }
 
   Future<void> _showModifierCompteDialog() async {
-    final screenContext = context;
     final user = context.read<AuthProvider>().user;
-
-    final emailCtrl = TextEditingController(text: user?.email ?? '');
-    final telCtrl = TextEditingController(text: user?.tel ?? '');
-    final mdpActuelCtrl = TextEditingController();
-    final nouveauMdpCtrl = TextEditingController();
-    bool isLoading = false;
 
     await showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setS) => AlertDialog(
-          backgroundColor: AppTheme.surface,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
-            children: [
-              Icon(Icons.edit, color: Colors.blue, size: 22),
-              SizedBox(width: 10),
-              Text('Modifier mon compte',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _field(emailCtrl, 'Email', Icons.email,
-                    TextInputType.emailAddress),
-                const SizedBox(height: 12),
-                _field(telCtrl, 'Téléphone', Icons.phone, TextInputType.phone),
-                const Divider(color: Colors.white12, height: 24),
-                const Text('Changer le mot de passe (optionnel)',
-                    style: TextStyle(color: Colors.white54, fontSize: 12)),
-                const SizedBox(height: 8),
-                _field(mdpActuelCtrl, 'Mot de passe actuel', Icons.lock,
-                    TextInputType.text,
-                    obscure: true),
-                const SizedBox(height: 12),
-                _field(nouveauMdpCtrl, 'Nouveau mot de passe',
-                    Icons.lock_outline, TextInputType.text,
-                    obscure: true),
-              ],
+      barrierDismissible: false,
+      builder: (dialogContext) => _ModifierCompteDialog(
+        token: _token,
+        initialEmail: user?.email ?? '',
+        initialTel: user?.tel ?? '',
+        onSuccess: (newToken, newEmail, newTel) async {
+          // ✅ دائماً نحدّث — حتى إذا ما جاش token جديد
+          await context.read<AuthProvider>().updateUser(
+                email: newEmail,
+                tel: newTel,
+                token: newToken, // إذا null، updateUser كتحافظ على القديم
+              );
+          Navigator.pop(dialogContext);
+          await Future.delayed(const Duration(milliseconds: 100));
+          scaffoldMessengerKey.currentState?.showSnackBar(
+            const SnackBar(
+              content: Text('Compte modifié avec succès'),
+              backgroundColor: Colors.green,
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Annuler',
-                  style: TextStyle(color: Colors.white54)),
-            ),
-            ElevatedButton(
-              onPressed: isLoading
-                  ? null
-                  : () async {
-                      setS(() => isLoading = true);
-
-                      final body = {
-                        'email': emailCtrl.text.trim(),
-                        'tel': telCtrl.text.trim(),
-                      };
-
-                      if (mdpActuelCtrl.text.isNotEmpty) {
-                        body['mot_de_passe_actuel'] = mdpActuelCtrl.text;
-                        body['nouveau_mot_de_passe'] = nouveauMdpCtrl.text;
-                      }
-
-                      try {
-                        final r = await http
-                            .put(
-                              Uri.parse(
-                                  '${ApiConstants.passager}/modifier-compte'),
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': 'Bearer $_token',
-                              },
-                              body: jsonEncode(body),
-                            )
-                            .timeout(const Duration(seconds: 10));
-
-                        if (!mounted) return;
-                        setS(() => isLoading = false);
-
-                        final responseData = jsonDecode(r.body);
-                        final msg = responseData['message'] ?? 'Erreur';
-
-                        if (r.statusCode == 200) {
-                          final newToken = responseData['token'] as String?;
-
-                          if (newToken != null) {
-                            await context.read<AuthProvider>().updateUser(
-                                  email: emailCtrl.text.trim(),
-                                  tel: telCtrl.text.trim(),
-                                  token: newToken,
-                                );
-                          }
-
-                          if (dialogContext.mounted) {
-                            Navigator.pop(dialogContext);
-                          }
-
-                          await Future.delayed(
-                              const Duration(milliseconds: 100));
-
-                          _PassagerHomeScreenState
-                              .scaffoldMessengerKey.currentState
-                              ?.showSnackBar(
-                            const SnackBar(
-                              content: Text('Compte modifié avec succès'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        } else {
-                          if (dialogContext.mounted) {
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              SnackBar(
-                                content: Text(msg),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      } catch (e) {
-                        setS(() => isLoading = false);
-                        if (dialogContext.mounted) {
-                          ScaffoldMessenger.of(dialogContext).showSnackBar(
-                            SnackBar(
-                              content: Text('Erreur: \$e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-              child: isLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2),
-                    )
-                  : const Text('Enregistrer',
-                      style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
+  }
+}
 
+// ============================================
+// DIALOG EXTERNE (hors de _PassagerHomeScreenState)
+// ============================================
+class _ModifierCompteDialog extends StatefulWidget {
+  final String token;
+  final String initialEmail;
+  final String initialTel;
+  final void Function(String? newToken, String email, String tel) onSuccess;
+
+  const _ModifierCompteDialog({
+    required this.token,
+    required this.initialEmail,
+    required this.initialTel,
+    required this.onSuccess,
+  });
+
+  @override
+  State<_ModifierCompteDialog> createState() => _ModifierCompteDialogState();
+}
+
+class _ModifierCompteDialogState extends State<_ModifierCompteDialog> {
+  late final TextEditingController emailCtrl;
+  late final TextEditingController telCtrl;
+  late final TextEditingController mdpActuelCtrl;
+  late final TextEditingController nouveauMdpCtrl;
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    emailCtrl = TextEditingController(text: widget.initialEmail);
+    telCtrl = TextEditingController(text: widget.initialTel);
+    mdpActuelCtrl = TextEditingController();
+    nouveauMdpCtrl = TextEditingController();
+  }
+
+  @override
+  void dispose() {
     emailCtrl.dispose();
     telCtrl.dispose();
     mdpActuelCtrl.dispose();
     nouveauMdpCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _enregistrer() async {
+    if (!mounted) return;
+    setState(() => isLoading = true);
+
+    final body = {
+      'email': emailCtrl.text.trim(),
+      'tel': telCtrl.text.trim(),
+    };
+
+    if (mdpActuelCtrl.text.isNotEmpty) {
+      body['mot_de_passe_actuel'] = mdpActuelCtrl.text;
+      body['nouveau_mot_de_passe'] = nouveauMdpCtrl.text;
+    }
+
+    try {
+      final r = await http
+          .put(
+            Uri.parse('${ApiConstants.passager}/modifier-compte'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${widget.token}',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (!mounted) return;
+      setState(() => isLoading = false);
+
+      final responseData = jsonDecode(r.body);
+      final msg = responseData['message'] ?? 'Erreur';
+
+      if (r.statusCode == 200) {
+        final newToken = responseData['token'] as String?;
+        widget.onSuccess(
+          newToken,
+          emailCtrl.text.trim(),
+          telCtrl.text.trim(),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppTheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Row(
+        children: [
+          Icon(Icons.edit, color: Colors.blue, size: 22),
+          SizedBox(width: 10),
+          Text('Modifier mon compte',
+              style: TextStyle(color: Colors.white, fontSize: 16)),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _field(emailCtrl, 'Email', Icons.email, TextInputType.emailAddress),
+            const SizedBox(height: 12),
+            _field(telCtrl, 'Téléphone', Icons.phone, TextInputType.phone),
+            const Divider(color: Colors.white12, height: 24),
+            const Text('Changer le mot de passe (optionnel)',
+                style: TextStyle(color: Colors.white54, fontSize: 12)),
+            const SizedBox(height: 8),
+            _field(mdpActuelCtrl, 'Mot de passe actuel', Icons.lock,
+                TextInputType.text,
+                obscure: true),
+            const SizedBox(height: 12),
+            _field(nouveauMdpCtrl, 'Nouveau mot de passe', Icons.lock_outline,
+                TextInputType.text,
+                obscure: true),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: isLoading ? null : () => Navigator.pop(context),
+          child: const Text('Annuler', style: TextStyle(color: Colors.white54)),
+        ),
+        ElevatedButton(
+          onPressed: isLoading ? null : _enregistrer,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          child: isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2),
+                )
+              : const Text('Enregistrer',
+                  style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    );
   }
 
   Widget _field(TextEditingController ctrl, String label, IconData icon,
@@ -466,7 +490,7 @@ class _AccueilHeader extends StatelessWidget {
               children: [
                 Icon(
                   Icons.psychology_alt,
-                  color: const Color(0xFF7B61FF),
+                  color: Color(0xFF7B61FF),
                   size: 18,
                 ),
                 SizedBox(width: 6),
@@ -494,32 +518,7 @@ class _LigneSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 58,
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-      ),
-      child: TextField(
-        controller: controller,
-        onSubmitted: onSubmitted,
-        textInputAction: TextInputAction.search,
-        style: const TextStyle(color: Colors.white, fontSize: 15),
-        decoration: InputDecoration(
-          hintText: 'Rechercher une ligne ou station...',
-          hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
-          prefixIcon: const Icon(Icons.search, color: AppTheme.primary),
-          suffixIcon: IconButton(
-            icon: const Icon(Icons.arrow_forward_rounded,
-                color: AppTheme.primary),
-            onPressed: () => onSubmitted(controller.text),
-          ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-      ),
-    );
+    return Container();
   }
 }
 
@@ -532,7 +531,7 @@ class _MapPreviewCard extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: Container(
-        height: 232, // زِدنا شوية باش ما يبقاش overflow
+        height: 232,
         decoration: BoxDecoration(
           color: const Color(0xFF0f1729),
           borderRadius: BorderRadius.circular(24),
@@ -540,7 +539,6 @@ class _MapPreviewCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // === الخريطة ===
             Positioned(
               right: -40,
               top: -20,
@@ -556,11 +554,9 @@ class _MapPreviewCard extends StatelessWidget {
                 ),
                 children: [
                   TileLayer(
-                    // ⬇️ بدّلنا لمزود CartoDB (مجاني + تصميم داكن يناسب التطبيق)
                     urlTemplate:
                         'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                     subdomains: const ['a', 'b', 'c', 'd'],
-                    // ⬇️ ضروري باش ما يحظركش الخادم
                     userAgentPackageName: 'com.transportdz.app',
                   ),
                   const MarkerLayer(
@@ -577,8 +573,6 @@ class _MapPreviewCard extends StatelessWidget {
                 ],
               ),
             ),
-
-            // === التدرّج اللوني من اليسار ===
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -596,8 +590,6 @@ class _MapPreviewCard extends StatelessWidget {
                 ),
               ),
             ),
-
-            // === المحتوى النصي ===
             Positioned(
               left: 20,
               top: 20,
@@ -698,8 +690,6 @@ class _MapPreviewCard extends StatelessWidget {
                 ],
               ),
             ),
-
-            // === أيقونة التكبير ===
             Positioned(
               top: 16,
               right: 16,
@@ -713,8 +703,6 @@ class _MapPreviewCard extends StatelessWidget {
                     color: Colors.white54, size: 20),
               ),
             ),
-
-            // === InkWell للنقر ===
             Positioned.fill(
               child: Material(
                 color: Colors.transparent,

@@ -573,29 +573,37 @@ class _AdminScreenState extends State<AdminScreen> {
         backgroundColor: _ModernColors.surface,
         elevation: 0,
         centerTitle: false,
-        title: const Text(
-          'Espace Admin',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
-          onPressed: () {},
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _ModernColors.primary.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.admin_panel_settings_rounded,
+                  color: _ModernColors.primary, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Espace Admin',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white70, size: 22),
-            onPressed: () {},
-          ),
-          IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70, size: 22),
+            tooltip: 'Actualiser',
             onPressed: _loadAll,
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white70, size: 22),
+            tooltip: 'Déconnexion',
             onPressed: () async {
               await context.read<AuthProvider>().logout();
               if (!context.mounted) return;
@@ -997,6 +1005,100 @@ class _DemandeCard extends StatelessWidget {
     required this.onChangeStatut,
     required this.onSupprimer,
   });
+  void _showDetailDialog(BuildContext context, dynamic d) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: _ModernColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _Avatar(prenom: d['prenom'] ?? '', nom: d['nom'] ?? ''),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${d['prenom'] ?? ''} ${d['nom'] ?? ''}'.trim(),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 17),
+                        ),
+                        Text(
+                          'Demande #${d['id']}',
+                          style: const TextStyle(
+                              color: _ModernColors.textMuted, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(color: _ModernColors.border, height: 28),
+              _detailRow(Icons.email_outlined, 'Email', d['email'] ?? '—'),
+              _detailRow(Icons.phone_outlined, 'Téléphone', d['tel'] ?? '—'),
+              _detailRow(
+                  Icons.location_on_outlined, 'Adresse', d['adresse'] ?? '—'),
+              _detailRow(Icons.badge_outlined, 'N° immatriculation',
+                  d['numero_proprietaire'] ?? '—'),
+              _detailRow(
+                  Icons.cake_outlined, 'Âge', d['age']?.toString() ?? '—'),
+              _detailRow(Icons.calendar_today_outlined, 'Date de la demande',
+                  d['created_at']?.toString().split('T').first ?? '—'),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _ModernColors.primary,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Fermer',
+                      style: TextStyle(color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: _ModernColors.primary, size: 18),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        color: _ModernColors.textMuted, fontSize: 11)),
+                const SizedBox(height: 2),
+                Text(value,
+                    style: const TextStyle(color: Colors.white, fontSize: 14)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1017,59 +1119,56 @@ class _DemandeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 0),
-            child: Row(
-              children: [
-                _Avatar(
-                  prenom: d['prenom'] ?? '',
-                  nom: d['nom'] ?? '',
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${d['prenom'] ?? ''} ${d['nom'] ?? ''}'.trim(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+          GestureDetector(
+            onTap: () => _showDetailDialog(context, d),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 12, 0),
+              child: Row(
+                children: [
+                  _Avatar(prenom: d['prenom'] ?? '', nom: d['nom'] ?? ''),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${d['prenom'] ?? ''} ${d['nom'] ?? ''}'.trim(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'ID: ${d['id']} · ${d['created_at']?.toString().split('T').first ?? ''}',
-                        style: const TextStyle(
-                            color: _ModernColors.textMuted, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    statut.toUpperCase(),
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                        const SizedBox(height: 2),
+                        Text(
+                          'ID: ${d['id']} · ${d['created_at']?.toString().split('T').first ?? ''}',
+                          style: const TextStyle(
+                              color: _ModernColors.textMuted, fontSize: 11),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      color: _ModernColors.textMuted, size: 20),
-                  onPressed: () => onSupprimer(d['id']),
-                ),
-              ],
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(statut.toUpperCase(),
+                        style: TextStyle(
+                            color: color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline,
+                        color: _ModernColors.textMuted, size: 20),
+                    onPressed: () => onSupprimer(d['id']),
+                  ),
+                ],
+              ),
             ),
           ),
           Padding(

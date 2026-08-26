@@ -1,7 +1,6 @@
 const GpsModel    = require('../models/gps.model');
-const TrajetModel = require('../models/trajet.model');
 
-// ═══ إرسال الموضع + بث Socket.IO محسّن ═══
+// ═══ إرسال الموضع ═══
 const envoyerPosition = async (req, res) => {
   console.log('📍 envoyerPosition appelé:', req.body);
   const { latitude, longitude, vitesse, ligne_id, trajet_id } = req.body;
@@ -14,34 +13,30 @@ const envoyerPosition = async (req, res) => {
     if (!conducteurId)
       return res.status(404).json({ message: 'Conducteur introuvable' });
 
-    // 1. حفظ في position_bus
     await GpsModel.upsertPosition({
       conducteurId, ligne_id, latitude, longitude, vitesse
     });
 
-    // 2. جلب المعلومات الكاملة للبث
     const info = await GpsModel.getConducteurFullInfo(conducteurId);
 
-    // 3. broadcast Socket.io مع كل البيانات المطلوبة
     req.io.emit('position_broadcast', {
-      trajet_id:      trajet_id || conducteurId.toString(),
-      latitude,
-      longitude,
-      vitesse:        vitesse || 0,
-      ligne_id:       ligne_id || null,
-      conducteur_id:  conducteurId,
+      trajet_id:       trajet_id || conducteurId.toString(),
+      latitude, longitude,
+      vitesse:         vitesse || 0,
+      ligne_id:        ligne_id || null,
+      conducteur_id:   conducteurId,
       proprietaire_id: info?.proprietaire_id || null,
-      ligne_numero:   info?.ligne_numero || '',
-      ligne_nom:      info?.ligne_nom || '',
-      conducteur_nom: info?.conducteur_nom || '',
+      ligne_numero:    info?.ligne_numero || '',
+      ligne_nom:       info?.ligne_nom || '',
+      conducteur_nom:  info?.conducteur_nom || '',
       conducteur_prenom: info?.conducteur_prenom || '',
       immatriculation: info?.immatriculation || '',
-      timestamp:      new Date().toISOString(),
+      timestamp:       new Date().toISOString(),
     });
 
     res.status(200).json({ message: 'Position enregistrée' });
   } catch (err) {
-    console.error(err);
+    console.error('❌ envoyerPosition:', err);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 };
@@ -55,45 +50,49 @@ const desactiverGPS = async (req, res) => {
 
     await GpsModel.desactiverGPS(conducteurId);
 
-    // broadcast إيقاف — نبعث trajet_id باش السويفي بيس يفهمو
     req.io.emit('trajet_termine', {
-      trajet_id: conducteurId.toString(),
+      trajet_id:     conducteurId.toString(),
       conducteur_id: conducteurId,
     });
 
     res.json({ message: 'GPS désactivé' });
   } catch (err) {
+    console.error('❌ desactiverGPS:', err);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 };
 
-// ═══ جديد: الراوت اللي يطلبها السويفي بيس ═══
+// ═══ جديد: trajets/actifs (للبروبريتار والليغن) ═══
 const getTrajetsActifs = async (req, res) => {
+  console.log('🗺️ getTrajetsActifs query:', req.query);
+  console.log('🗺️ req.user.id:', req.user?.id);
+  
   try {
     const { proprietaire_id, ligne_id } = req.query;
 
     let rows;
     if (proprietaire_id) {
-      // البروبريتار — نرجع باصاتو فقط
+      console.log('→ filtre proprietaire_id:', proprietaire_id);
       rows = await GpsModel.getPositionsByProprietaireCompte(proprietaire_id);
     } else if (ligne_id) {
-      // فلتر بالليغن
-      rows = await GpsModel.getPositionByLigne(ligne_id);
-      rows = rows.map(r => ({
+      console.log('→ filtre ligne_id:', ligne_id);
+      const raw = await GpsModel.getPositionByLigne(ligne_id);
+      rows = raw.map(r => ({
         ...r,
-        trajet_id: r.conducteur_id,
+        trajet_id:    r.conducteur_id,
         derniere_maj: r.updated_at,
       }));
     } else {
-      // الكل
-      rows = await GpsModel.getToutesPositions();
-      rows = rows.map(r => ({
+      console.log('→ sans filtre');
+      const raw = await GpsModel.getToutesPositions();
+      rows = raw.map(r => ({
         ...r,
-        trajet_id: r.conducteur_id,
+        trajet_id:    r.conducteur_id,
         derniere_maj: r.updated_at,
       }));
     }
 
+    console.log('✅ rows retournées:', rows.length);
     res.json(rows);
   } catch (err) {
     console.error('❌ getTrajetsActifs:', err);
@@ -122,7 +121,7 @@ const getToutesPositions = async (req, res) => {
 module.exports = {
   envoyerPosition,
   desactiverGPS,
-  getTrajetsActifs,    // ← جديد
+  getTrajetsActifs,
   getPositionLigne,
   getToutesPositions,
 };

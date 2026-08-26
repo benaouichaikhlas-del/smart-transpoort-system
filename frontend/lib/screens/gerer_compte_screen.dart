@@ -9,6 +9,7 @@ import 'welcome_screen.dart';
 
 class GererCompteScreen extends StatefulWidget {
   const GererCompteScreen({super.key});
+
   @override
   State<GererCompteScreen> createState() => _GererCompteScreenState();
 }
@@ -110,9 +111,10 @@ class _GererCompteScreenState extends State<GererCompteScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
+                // 1️⃣ تحقق من تطابق الباسورد
                 if (passCtrl.text.isNotEmpty &&
                     passCtrl.text != pass2Ctrl.text) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(ctx).showSnackBar(
                     const SnackBar(
                       content: Text('Mots de passe différents'),
                       backgroundColor: Colors.red,
@@ -120,33 +122,84 @@ class _GererCompteScreenState extends State<GererCompteScreen> {
                   );
                   return;
                 }
+
+                // 2️⃣ نحضرو الـ body
                 final body = <String, dynamic>{};
-                if (emailCtrl.text.trim() != _email) {
-                  body['email'] = emailCtrl.text.trim();
+                final newEmail = emailCtrl.text.trim();
+                if (newEmail != _email) {
+                  body['email'] = newEmail;
                 }
                 if (passCtrl.text.isNotEmpty) {
                   body['mot_de_passe'] = passCtrl.text.trim();
                 }
+
+                // 3️⃣ نسدو الـ Dialog
                 Navigator.pop(ctx);
+
+                // إذا مافي والو تبدل، مانديرو والو
                 if (body.isEmpty) return;
 
-                final r = await http.put(
-                  Uri.parse(ApiConstants.compte),
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer $_token',
-                  },
-                  body: jsonEncode(body),
-                );
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(jsonDecode(r.body)['message']),
-                    backgroundColor: r.statusCode == 200
-                        ? Colors.green
-                        : Colors.red,
-                  ),
-                );
+                // 4️⃣ نبعثو الطلب
+                try {
+                  debugPrint('📤 Sending PUT to: ${ApiConstants.compte}');
+                  debugPrint('📤 Body: $body');
+
+                  final r = await http.put(
+                    Uri.parse(ApiConstants.compte),
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': 'Bearer $_token',
+                    },
+                    body: jsonEncode(body),
+                  );
+
+                  debugPrint('📡 Status: ${r.statusCode}');
+                  debugPrint('📡 Body: ${r.body}');
+
+                  if (!mounted) return;
+
+                  // ⭐ نجبدو الرسالة بأمان (try/catch حول jsonDecode)
+                  String message;
+                  bool success = false;
+                  try {
+                    final data = jsonDecode(r.body);
+                    message =
+                        data['message']?.toString() ?? 'Opération effectuée';
+                    success = r.statusCode == 200;
+                  } catch (e) {
+                    message = 'Erreur serveur (${r.statusCode})';
+                    debugPrint('❌ jsonDecode error: $e');
+                  }
+
+                  // ⭐ نحدّثو AuthProvider إذا نجح التعديل وكان الإيميل تبدل
+                  if (success && body['email'] != null) {
+                    await context
+                        .read<AuthProvider>()
+                        .updateUser(email: newEmail);
+                  }
+
+                  // ⭐ نوريو SnackBar
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(message),
+                        backgroundColor: success ? Colors.green : Colors.red,
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('❌ HTTP error: $e');
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erreur de connexion: $e'),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
@@ -212,26 +265,43 @@ class _GererCompteScreenState extends State<GererCompteScreen> {
     );
     if (confirmed != true) return;
 
-    final r = await http.delete(
-      Uri.parse(ApiConstants.compte),
-      headers: {'Authorization': 'Bearer $_token'},
-    );
-    if (!mounted) return;
+    try {
+      final r = await http.delete(
+        Uri.parse(ApiConstants.compte),
+        headers: {'Authorization': 'Bearer $_token'},
+      );
+      if (!mounted) return;
 
-    if (r.statusCode == 200) {
-      await context.read<AuthProvider>().logout();
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-        (_) => false,
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(jsonDecode(r.body)['message']),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (r.statusCode == 200) {
+        await context.read<AuthProvider>().logout();
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          (_) => false,
+        );
+      } else {
+        String message;
+        try {
+          message = jsonDecode(r.body)['message'] ?? 'Erreur';
+        } catch (_) {
+          message = 'Erreur serveur';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -261,7 +331,7 @@ class _GererCompteScreenState extends State<GererCompteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.read<AuthProvider>().user;
+    final user = context.watch<AuthProvider>().user;
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
@@ -277,8 +347,6 @@ class _GererCompteScreenState extends State<GererCompteScreen> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-
-            // Avatar
             const CircleAvatar(
               radius: 50,
               backgroundColor: AppTheme.surface,
@@ -305,8 +373,6 @@ class _GererCompteScreenState extends State<GererCompteScreen> {
               ),
             ),
             const SizedBox(height: 40),
-
-            // Modifier
             _actionCard(
               icon: Icons.edit_outlined,
               label: 'Modifier compte',
@@ -315,8 +381,6 @@ class _GererCompteScreenState extends State<GererCompteScreen> {
               onTap: _showModifierDialog,
             ),
             const SizedBox(height: 14),
-
-            // Supprimer
             _actionCard(
               icon: Icons.delete_outline,
               label: 'Supprimer compte',

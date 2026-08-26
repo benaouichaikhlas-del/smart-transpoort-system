@@ -569,7 +569,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ),
                 const SizedBox(height: 14),
 
-                // ── SEARCH BAR زجاجي ──
+                // ── SEARCH BAR زجاجي واضح ──
                 ClipRRect(
                   borderRadius: BorderRadius.circular(18),
                   child: BackdropFilter(
@@ -577,15 +577,26 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     child: Container(
                       height: 52,
                       decoration: BoxDecoration(
-                        color: _surface.withOpacity(0.70),
+                        // ⭐ خلفية أغمق شوية باش تبان فوق الخريطة
+                        color: const Color(0xFF1A0F2E).withOpacity(0.92),
                         borderRadius: BorderRadius.circular(18),
-                        border:
-                            Border.all(color: _neonPrimary.withOpacity(0.25)),
+                        // ⭐ بوردر نيون واضح
+                        border: Border.all(
+                          color: _neonPrimary.withOpacity(0.6),
+                          width: 1.2,
+                        ),
+                        // ⭐ ظل نيون مليح
                         boxShadow: [
                           BoxShadow(
-                            color: _neonPrimary.withOpacity(0.10),
-                            blurRadius: 16,
+                            color: _neonPrimary.withOpacity(0.25),
+                            blurRadius: 20,
+                            spreadRadius: 2,
                             offset: const Offset(0, 4),
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
@@ -623,13 +634,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             padding: const EdgeInsets.all(9),
                             decoration: BoxDecoration(
                               color: _socketOk
-                                  ? _neonPrimary.withOpacity(0.15)
-                                  : _neonSecondary.withOpacity(0.15),
+                                  ? _neonPrimary.withOpacity(0.20)
+                                  : _neonSecondary.withOpacity(0.20),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: _socketOk
-                                    ? _neonPrimary.withOpacity(0.4)
-                                    : _neonSecondary.withOpacity(0.4),
+                                    ? _neonPrimary.withOpacity(0.5)
+                                    : _neonSecondary.withOpacity(0.5),
+                                width: 1,
                               ),
                             ),
                             child: Icon(

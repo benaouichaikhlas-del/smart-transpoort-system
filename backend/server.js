@@ -93,7 +93,7 @@ app.use('/api/notifications',     require('./routes/notification.routes'));
 app.use('/api/gps',               require('./routes/gps.routes'));
 app.use('/api/trajets',           require('./routes/trajet.routes'));
 app.use('/api/permanences',       require('./routes/permanence.routes'));
-
+app.use('/api/compte',            require('./routes/compte.routes'));  // ⭐ زيد هاد السطر
 app.get('/', (req, res) => res.send('API OK'));
 
 app.get('/health', (req, res) => {

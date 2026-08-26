@@ -31,18 +31,15 @@ class AuthProvider extends ChangeNotifier {
         final parts = token.split('.');
         if (parts.length == 3) {
           String payload = parts[1];
-          while (payload.length % 4 != 0) {
-            payload += '=';
-          }
+          while (payload.length % 4 != 0) payload += '=';
 
-          final decoded = jsonDecode(
-            utf8.decode(base64Url.decode(payload)),
-          );
+          final decoded = jsonDecode(utf8.decode(base64Url.decode(payload)));
 
           final id = decoded['id'] is int
               ? decoded['id']
               : int.tryParse(decoded['id'].toString()) ?? 0;
 
+          // 1️⃣ بنّد User من الـ JWT (المصدر الوحيد)
           _user = UserModel(
             id: id,
             email: decoded['email']?.toString() ?? '',
@@ -52,17 +49,35 @@ class AuthProvider extends ChangeNotifier {
             prenom: decoded['prenom']?.toString(),
             tel: decoded['tel']?.toString(),
           );
+
+          // ⭐ فقط إذا كان المخزن ينتمي لنفس المستخدم (نفس الـ ID)
+          final storedUserId = await _secureStorage.read(key: 'user_id');
+          final storedEmail = await _secureStorage.read(key: 'user_email');
+          final storedTel = await _secureStorage.read(key: 'user_tel');
+
+          if (storedUserId == _user!.id.toString()) {
+            if (storedEmail != null) {
+              _user = _user!.copyWith(email: storedEmail);
+            }
+            if (storedTel != null) {
+              _user = _user!.copyWith(tel: storedTel);
+            }
+          }
+
           notifyListeners();
         }
       } catch (e) {
         debugPrint('❌ Erreur init: $e');
         await _secureStorage.delete(key: 'token');
+        await _secureStorage.delete(key: 'user_id');
+        await _secureStorage.delete(key: 'user_email');
+        await _secureStorage.delete(key: 'user_tel');
       }
     }
   }
 
   // ═══════════════════════════════════════════
-  // ✅ UPDATE USER
+  // ✅ UPDATE USER (من Dialog Gérer Compte)
   // ═══════════════════════════════════════════
   Future<void> updateUser({
     String? email,
@@ -77,10 +92,13 @@ class AuthProvider extends ChangeNotifier {
       token: token ?? _user!.token,
     );
 
-    // ✅ حدّث التخزين المحلي
-    if (token != null) {
-      await _saveToken(token);
-    }
+    if (token != null) await _saveToken(token);
+
+    // ⭐ خزّن مع user_id باش نعرفو المالك
+    await _secureStorage.write(key: 'user_id', value: _user!.id.toString());
+    if (email != null)
+      await _secureStorage.write(key: 'user_email', value: email);
+    if (tel != null) await _secureStorage.write(key: 'user_tel', value: tel);
 
     notifyListeners();
   }
@@ -105,6 +123,14 @@ class AuthProvider extends ChangeNotifier {
         _user = result['user'];
         _premierConnexion = _user!.premierConnexion;
         await _saveToken(_user!.token);
+
+        // ⭐ خزّن بيانات المستخدم الحالي فقط
+        await _secureStorage.write(key: 'user_id', value: _user!.id.toString());
+        await _secureStorage.write(key: 'user_email', value: _user!.email);
+        if (_user!.tel != null) {
+          await _secureStorage.write(key: 'user_tel', value: _user!.tel);
+        }
+
         notifyListeners();
         return true;
       } else {
@@ -126,12 +152,15 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ═══════════════════════════════════════════
-  // ✅ LOGOUT
+  // ✅ LOGOUT — امحي كلشي
   // ═══════════════════════════════════════════
   Future<void> logout() async {
     _user = null;
     _premierConnexion = false;
     await _secureStorage.delete(key: 'token');
+    await _secureStorage.delete(key: 'user_id');
+    await _secureStorage.delete(key: 'user_email');
+    await _secureStorage.delete(key: 'user_tel');
     notifyListeners();
   }
 }

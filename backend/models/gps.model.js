@@ -35,38 +35,82 @@ const GpsModel = {
   },
 
   getPositionByLigne: async (ligneId) => {
-  const r = await pool.query(
-    `SELECT pb.conducteur_id,
-            pb.latitude, pb.longitude, pb.vitesse, pb.updated_at,
-            c.nom AS conducteur_nom, c.prenom AS conducteur_prenom,
-            l.numero AS ligne_numero, l.nom AS ligne_nom,
-            l.id AS ligne_id
-     FROM position_bus pb
-     JOIN conducteur c ON c.id = pb.conducteur_id
-     LEFT JOIN ligne l ON l.id = pb.ligne_id
-     WHERE pb.ligne_id = $1
-       AND pb.actif = true
-       AND pb.updated_at > NOW() - INTERVAL '10 minutes'  -- ← بدل 2
-     ORDER BY pb.updated_at DESC`,
-    [ligneId]
-  );
-  return r.rows;
-},
- getToutesPositions: async () => {
-  const r = await pool.query(
-    `SELECT pb.conducteur_id,  -- ← زيد هذا
-            pb.latitude, pb.longitude, pb.vitesse, pb.updated_at,
-            pb.ligne_id,
-            c.nom AS conducteur_nom,
-            l.numero AS ligne_numero, l.nom AS ligne_nom
-     FROM position_bus pb
-     JOIN conducteur c ON c.id = pb.conducteur_id
-     LEFT JOIN ligne l ON l.id = pb.ligne_id
-     WHERE pb.actif = true
-       AND pb.updated_at > NOW() - INTERVAL '2 minutes'`
-  );
-  return r.rows;
-},
+    const r = await pool.query(
+      `SELECT pb.conducteur_id,
+              pb.latitude, pb.longitude, pb.vitesse, pb.updated_at,
+              c.nom AS conducteur_nom, c.prenom AS conducteur_prenom,
+              l.numero AS ligne_numero, l.nom AS ligne_nom,
+              l.id AS ligne_id
+       FROM position_bus pb
+       JOIN conducteur c ON c.id = pb.conducteur_id
+       LEFT JOIN ligne l ON l.id = pb.ligne_id
+       WHERE pb.ligne_id = $1
+         AND pb.actif = true
+         AND pb.updated_at > NOW() - INTERVAL '10 minutes'
+       ORDER BY pb.updated_at DESC`,
+      [ligneId]
+    );
+    return r.rows;
+  },
+
+  getToutesPositions: async () => {
+    const r = await pool.query(
+      `SELECT pb.conducteur_id,
+              pb.latitude, pb.longitude, pb.vitesse, pb.updated_at,
+              pb.ligne_id,
+              c.nom AS conducteur_nom, c.prenom AS conducteur_prenom,
+              l.numero AS ligne_numero, l.nom AS ligne_nom
+       FROM position_bus pb
+       JOIN conducteur c ON c.id = pb.conducteur_id
+       LEFT JOIN ligne l ON l.id = pb.ligne_id
+       WHERE pb.actif = true
+         AND pb.updated_at > NOW() - INTERVAL '10 minutes'`
+    );
+    return r.rows;
+  },
+
+  // ═══ جديد 1: باصات البروبريتار ═══
+  getPositionsByProprietaireCompte: async (compteId) => {
+    const r = await pool.query(
+      `SELECT pb.conducteur_id AS trajet_id,
+              pb.latitude, pb.longitude, pb.vitesse,
+              pb.updated_at AS derniere_maj,
+              pb.ligne_id,
+              c.nom AS conducteur_nom, c.prenom AS conducteur_prenom,
+              l.numero AS ligne_numero, l.nom AS ligne_nom,
+              v.immatriculation,
+              p.compte_id AS proprietaire_id
+       FROM position_bus pb
+       JOIN conducteur c ON c.id = pb.conducteur_id
+       LEFT JOIN vehicule v ON v.id = c.vehicule_id
+       LEFT JOIN ligne l ON l.id = pb.ligne_id
+       LEFT JOIN proprietaire p ON p.id = l.proprietaire_id
+       WHERE pb.actif = true
+         AND pb.updated_at > NOW() - INTERVAL '10 minutes'
+         AND p.compte_id = $1
+       ORDER BY pb.updated_at DESC`,
+      [compteId]
+    );
+    return r.rows;
+  },
+
+  // ═══ جديد 2: معلومات كاملة للسوكت ═══
+  getConducteurFullInfo: async (conducteurId) => {
+    const r = await pool.query(
+      `SELECT c.nom AS conducteur_nom, c.prenom AS conducteur_prenom,
+              l.numero AS ligne_numero, l.nom AS ligne_nom,
+              v.immatriculation,
+              p.compte_id AS proprietaire_id
+       FROM conducteur c
+       LEFT JOIN vehicule v ON v.id = c.vehicule_id
+       LEFT JOIN ligne l ON l.id = v.ligne_id
+       LEFT JOIN proprietaire p ON p.id = l.proprietaire_id
+       WHERE c.id = $1`,
+      [conducteurId]
+    );
+    return r.rows[0] || null;
+  },
+
 };
 
 module.exports = GpsModel;
