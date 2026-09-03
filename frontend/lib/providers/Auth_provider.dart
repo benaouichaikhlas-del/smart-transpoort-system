@@ -39,7 +39,7 @@ class AuthProvider extends ChangeNotifier {
               ? decoded['id']
               : int.tryParse(decoded['id'].toString()) ?? 0;
 
-          // 1️⃣ بنّد User من الـ JWT (المصدر الوحيد)
+          // 1️⃣ بنّد User من الـ JWT
           _user = UserModel(
             id: id,
             email: decoded['email']?.toString() ?? '',
@@ -50,7 +50,7 @@ class AuthProvider extends ChangeNotifier {
             tel: decoded['tel']?.toString(),
           );
 
-          // ⭐ فقط إذا كان المخزن ينتمي لنفس المستخدم (نفس الـ ID)
+          // ⭐ حدّث من المخزن إذا كان نفس المستخدم
           final storedUserId = await _secureStorage.read(key: 'user_id');
           final storedEmail = await _secureStorage.read(key: 'user_email');
           final storedTel = await _secureStorage.read(key: 'user_tel');
@@ -108,7 +108,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ═══════════════════════════════════════════
-  // ✅ LOGIN
+  // ✅ LOGIN — حدّث من المخزن إذا نفس المستخدم
   // ═══════════════════════════════════════════
   Future<bool> login(String email, String password) async {
     _isLoading = true;
@@ -120,11 +120,26 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
 
       if (result['success']) {
+        // ⭐ جبد المخزن **قبل** ما تكتب الجديد
+        final storedUserId = await _secureStorage.read(key: 'user_id');
+        final storedEmail = await _secureStorage.read(key: 'user_email');
+        final storedTel = await _secureStorage.read(key: 'user_tel');
+
         _user = result['user'];
         _premierConnexion = _user!.premierConnexion;
         await _saveToken(_user!.token);
 
-        // ⭐ خزّن بيانات المستخدم الحالي فقط
+        // ⭐ إذا نفس المستخدم → استخدم الأرقام/الإيميل المخزنة (أحدث)
+        if (storedUserId == _user!.id.toString()) {
+          if (storedEmail != null) {
+            _user = _user!.copyWith(email: storedEmail);
+          }
+          if (storedTel != null) {
+            _user = _user!.copyWith(tel: storedTel);
+          }
+        }
+
+        // ⭐ اكتب/حدّث المخزن بالقيم النهائية
         await _secureStorage.write(key: 'user_id', value: _user!.id.toString());
         await _secureStorage.write(key: 'user_email', value: _user!.email);
         if (_user!.tel != null) {
@@ -152,15 +167,21 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ═══════════════════════════════════════════
-  // ✅ LOGOUT — امحي كلشي
+  // ✅ LOGOUT — امحي token فقط، خلي user_id/email/tel
   // ═══════════════════════════════════════════
   Future<void> logout() async {
     _user = null;
     _premierConnexion = false;
+
+    // ⭐ امحي token فقط (الأمان)
     await _secureStorage.delete(key: 'token');
-    await _secureStorage.delete(key: 'user_id');
-    await _secureStorage.delete(key: 'user_email');
-    await _secureStorage.delete(key: 'user_tel');
+
+    // ⭐ ما تمحيش user_id / user_email / user_tel
+    // باش كي يعاود يدخل بنفس الحساب يجبد التحديث الأخير
+    // await _secureStorage.delete(key: 'user_id');
+    // await _secureStorage.delete(key: 'user_email');
+    // await _secureStorage.delete(key: 'user_tel');
+
     notifyListeners();
   }
 }

@@ -1,6 +1,6 @@
 const pool = require('../db/pool');
 const AdminModel = require('../models/admin.model');
-const NotificationModel = require('../models/notification.model'); // ← استخدم هذا
+const NotificationModel = require('../models/notification.model');
 
 const getDemandes = async (req, res) => {
   try {
@@ -12,6 +12,7 @@ const getDemandes = async (req, res) => {
   }
 };
 
+// ✅ معدلة ومصححة بالكامل
 const accepterDemande = async (req, res) => {
   const { id } = req.params;
   try {
@@ -19,26 +20,64 @@ const accepterDemande = async (req, res) => {
     if (!demande)
       return res.status(404).json({ message: 'Demande introuvable' });
 
-    const existe = await AdminModel.compteEmailExiste(demande.email);
-    if (existe)
-      return res.status(409).json({ message: 'Un compte existe déjà pour cet email' });
+    // 🔍 شوف واش الحساب موجود (case-insensitive)
+    const compteExistant = await AdminModel.getCompteByEmail(demande.email);
 
-    const compteId = await AdminModel.creerCompteProprietaire(
-      demande.email,
-      demande.mot_de_passe
-    );
-    await AdminModel.creerProprietaire({
-      nom: demande.nom,
-      email: demande.email,
-      tel: demande.tel,
-      adresse: demande.adresse,
-      compteId,
-    });
+    let compteId;
+
+    if (compteExistant) {
+      // 🔁 الحساب موجود → فعلو + حدث الباسورد + role
+      compteId = compteExistant.id;
+      await AdminModel.updateComptePassword(compteId, demande.mot_de_passe);
+      
+      // ✅ هادي لازمة باش يتفعل الحساب!
+      const updated = await AdminModel.activerCompteProprietaire(compteId);
+      console.log('🔁 Compte existant réactivé:', updated);
+    } else {
+      // ✅ الحساب ماشي موجود → خلق جديد
+      compteId = await AdminModel.creerCompteProprietaire(
+        demande.email,
+        demande.mot_de_passe
+      );
+      console.log('✅ Nouveau compte créé, id:', compteId);
+    }
+
+    // 🔍 شوف واش proprietaire موجود
+    const proprietaireExistant = await AdminModel.getProprietaireByEmail(demande.email);
+
+    if (!proprietaireExistant) {
+      // خلق proprietaire فقط إذا ماشي موجود
+      await AdminModel.creerProprietaire({
+        nom: demande.nom,
+        prenom: demande.prenom,
+        email: demande.email,
+        tel: demande.tel,
+        adresse: demande.adresse,
+        compteId,
+        age: demande.age,
+      });
+      console.log('✅ Proprietaire créé');
+    }
+
+    // ✅ فعل الرقم PRO
+    if (demande.numero_proprietaire) {
+      await pool.query(
+        "UPDATE numeros_proprietaire SET est_utilise = true WHERE numero = $1",
+        [demande.numero_proprietaire]
+      );
+    }
+
+    // ✅ قبل الطلب
     await AdminModel.accepterDemande(id);
-    res.status(200).json({ message: 'Compte activé avec succès' });
+
+    res.status(200).json({
+      success: true,
+      message: 'Compte activé avec succès',
+      compte_id: compteId,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Erreur serveur' });
+    console.error('❌ ERREUR accepterDemande:', err);
+    res.status(500).json({ message: err.message || 'Erreur serveur' });
   }
 };
 
@@ -80,6 +119,7 @@ const changerStatutDemande = async (req, res) => {
     res.status(500).json({ message: 'Erreur serveur' });
   }
 };
+
 const supprimerDemande = async (req, res) => {
   const { id } = req.params;
   try {
@@ -87,10 +127,9 @@ const supprimerDemande = async (req, res) => {
     if (!demande)
       return res.status(404).json({ message: 'Demande introuvable' });
 
-    // إذا كانت مقبولة وعندها compte/proprietaire، نمسحوهم زادة
     if (demande.statut === 'accepte') {
-      await pool.query('DELETE FROM proprietaire WHERE email = $1', [demande.email]);
-      await pool.query('DELETE FROM compte WHERE email = $1', [demande.email]);
+      await pool.query('DELETE FROM proprietaire WHERE LOWER(email) = LOWER($1)', [demande.email]);
+      await pool.query('DELETE FROM compte WHERE LOWER(email) = LOWER($1)', [demande.email]);
     }
 
     await AdminModel.supprimerDemande(id);
@@ -100,6 +139,7 @@ const supprimerDemande = async (req, res) => {
     res.status(500).json({ message: 'Erreur serveur' });
   }
 };
+
 const getFeedbacks = async (req, res) => {
   try {
     const rows = await AdminModel.getFeedbacks();
@@ -127,7 +167,6 @@ const getEvaluationsAdmin = async (req, res) => {
   }
 };
 
-// ✅ الدالة المصحّحة — وحدة فقط!
 const updateStatutSignalement = async (req, res) => {
   const { id } = req.params;
   const { statut } = req.body;
@@ -141,7 +180,6 @@ const updateStatutSignalement = async (req, res) => {
 
     await AdminModel.updateStatutSignalement(id, statut);
 
-    // ✅ أرسل notification للباسجي باستخدام NotificationModel.create (4 params)
     const passagerId = sig.passager_id;
     if (passagerId) {
       const titres = {

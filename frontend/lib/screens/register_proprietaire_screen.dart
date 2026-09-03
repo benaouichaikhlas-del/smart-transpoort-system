@@ -12,8 +12,8 @@ import 'attente_screen.dart';
 // ══════════════════════════════════════════════════
 const _bg = Color(0xFF0A0612);
 const _surface = Color(0xFF13091F);
-const _neonPurple = Color.fromARGB(255, 115, 68, 224); // Violet néon
-const _neonPink = Color(0xFFEC4899); // Rose néon
+const _neonPurple = Color.fromARGB(255, 115, 68, 224);
+const _neonPink = Color(0xFFEC4899);
 const _white = Colors.white;
 const _white60 = Color(0x99FFFFFF);
 const _white30 = Color(0x4DFFFFFF);
@@ -111,6 +111,7 @@ class _RegisterProprietaireScreenState
     super.dispose();
   }
 
+  // ⭐ تفريغ كامل للحقول + إعادة الـ UI لحالو الأول
   void _resetForm() {
     for (final c in [
       _nomCtrl,
@@ -122,24 +123,58 @@ class _RegisterProprietaireScreenState
       _passCtrl,
       _confirmCtrl,
       _numeroCtrl,
-    ]) c.clear();
+    ]) {
+      c.clear();
+    }
     _touched.clear();
     _emailVerifie = false;
     _formKey.currentState?.reset();
+    setState(() {});
   }
 
   String _cleanPhone(String phone) => phone.replaceAll(RegExp(r'\s'), '');
 
-  void _showSnack(String msg, Color color) {
+  // ⭐ SnackBar نيون أنيق
+  void _showSnack(String msg, Color color, {IconData? icon}) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: color),
+      SnackBar(
+        content: Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+            ],
+            Expanded(
+              child: Text(
+                msg,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: color.withOpacity(0.15),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: color.withOpacity(0.6), width: 1.2),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+        elevation: 0,
+      ),
     );
   }
 
   Future<void> _verifierEmail() async {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      _showSnack('Veuillez entrer un email valide', Colors.orange);
+      _showSnack('Veuillez entrer un email valide', Colors.orange,
+          icon: Icons.warning_amber_rounded);
       return;
     }
     final verifie = await showDialog<bool>(
@@ -149,16 +184,21 @@ class _RegisterProprietaireScreenState
     );
     if (verifie == true) {
       setState(() => _emailVerifie = true);
-      _showSnack('✅ Email vérifié !', Colors.green);
+      _showSnack('✅ Email vérifié avec succès', Colors.green,
+          icon: Icons.verified_rounded);
     }
   }
 
   Future<void> _submit() async {
     if (!_emailVerifie) {
-      _showSnack('Veuillez vérifier votre email avant de vous inscrire',
-          Colors.orange);
+      _showSnack(
+        'Veuillez vérifier votre email avant de vous inscrire',
+        Colors.orange,
+        icon: Icons.warning_amber_rounded,
+      );
       return;
     }
+
     setState(() => _touched.addAll([
           'prenom',
           'nom',
@@ -170,33 +210,62 @@ class _RegisterProprietaireScreenState
           'confirm',
           'numero'
         ]));
+
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
 
-    final result = await _service.demanderInscription(
-      DemandeModel(
-        nom: _nomCtrl.text.trim(),
-        prenom: _prenomCtrl.text.trim(),
-        age: int.parse(_ageCtrl.text.trim()),
-        email: _emailCtrl.text.trim(),
-        tel: _cleanPhone(_telCtrl.text.trim()),
-        adresse: _adresseCtrl.text.trim(),
-        motDePasse: _passCtrl.text.trim(),
-        numeroProprietaire: _numeroCtrl.text.trim().toUpperCase(),
-      ),
-    );
-
-    setState(() => _isLoading = false);
-    if (!mounted) return;
-
-    if (result['success']) {
-      _resetForm();
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const AttenteScreen()),
+    // ⭐ TRY/CATCH/FINALLY — باش الزر ما يبقاش يدور للأبد
+    try {
+      final result = await _service.demanderInscription(
+        DemandeModel(
+          nom: _nomCtrl.text.trim(),
+          prenom: _prenomCtrl.text.trim(),
+          age: int.parse(_ageCtrl.text.trim()),
+          email: _emailCtrl.text.trim(),
+          tel: _cleanPhone(_telCtrl.text.trim()),
+          adresse: _adresseCtrl.text.trim(),
+          motDePasse: _passCtrl.text.trim(),
+          numeroProprietaire: _numeroCtrl.text.trim().toUpperCase(),
+        ),
       );
-    } else {
-      _showSnack(result['message'], AppTheme.error);
+
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        _resetForm();
+        _showSnack(
+          'Demande envoyée avec succès !',
+          const Color(0xFF00C853),
+          icon: Icons.check_circle_rounded,
+        );
+        await Future.delayed(const Duration(seconds: 1));
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AttenteScreen()),
+        );
+      } else {
+        _showSnack(
+          result['message']?.toString() ?? 'Erreur lors de l\'envoi',
+          const Color(0xFFEF4444),
+          icon: Icons.error_outline_rounded,
+        );
+      }
+    } catch (e, stack) {
+      // ⭐ طبع الخطأ في Console باش تشوفو
+      debugPrint('❌ ERREUR SUBMIT: $e');
+      debugPrint('📍 STACK: $stack');
+
+      if (!mounted) return;
+      _showSnack(
+        'Erreur réseau: ${e.toString()}',
+        const Color(0xFFEF4444),
+        icon: Icons.wifi_off_rounded,
+      );
+    } finally {
+      // ⭐ ضروري باش الزر يرجع نشيط حتى لو صار خطأ
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -207,9 +276,6 @@ class _RegisterProprietaireScreenState
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ═══════════════════════════════════════════════
-          // 1) خلفية الصورة + تدرج بنفسجي
-          // ═══════════════════════════════════════════════
           Image.asset(
             'assets/images/pro.png',
             fit: BoxFit.cover,
@@ -229,10 +295,6 @@ class _RegisterProprietaireScreenState
               ),
             ),
           ),
-
-          // ═══════════════════════════════════════════════
-          // 2) تدرج داكن قوي
-          // ═══════════════════════════════════════════════
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -248,10 +310,6 @@ class _RegisterProprietaireScreenState
               ),
             ),
           ),
-
-          // ═══════════════════════════════════════════════
-          // 3) المحتوى
-          // ═══════════════════════════════════════════════
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -260,29 +318,29 @@ class _RegisterProprietaireScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Back button ──
                     _GlassButton(
                       onTap: () => Navigator.pop(context),
                       child: const Icon(Icons.arrow_back_ios_new,
                           color: _white, size: 18),
                     ),
                     const SizedBox(height: 20),
-
-                    // ── Icône néon violet ──
                     Center(
                       child: Container(
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color.fromARGB(255, 100, 54, 206).withOpacity(0.1),
+                          color: const Color.fromARGB(255, 100, 54, 206)
+                              .withOpacity(0.1),
                           border: Border.all(
-                            color: const Color.fromARGB(255, 100, 54, 206).withOpacity(0.6),
+                            color: const Color.fromARGB(255, 100, 54, 206)
+                                .withOpacity(0.6),
                             width: 1.5,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color.fromARGB(255, 100, 54, 206).withOpacity(0.3),
+                              color: const Color.fromARGB(255, 100, 54, 206)
+                                  .withOpacity(0.3),
                               blurRadius: 20,
                               spreadRadius: 2,
                             ),
@@ -290,14 +348,12 @@ class _RegisterProprietaireScreenState
                         ),
                         child: const Icon(
                           Icons.business_outlined,
-                          color: const Color.fromARGB(255, 100, 54, 206),
+                          color: Color.fromARGB(255, 100, 54, 206),
                           size: 36,
                         ),
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    // ── Titre ──
                     Center(
                       child: RichText(
                         textAlign: TextAlign.center,
@@ -340,10 +396,6 @@ class _RegisterProprietaireScreenState
                       ),
                     ),
                     const SizedBox(height: 24),
-
-                    // ═══════════════════════════════════════════════
-                    // 4) بطاقة النموذج الزجاجية
-                    // ═══════════════════════════════════════════════
                     ClipRRect(
                       borderRadius: BorderRadius.circular(24),
                       child: BackdropFilter(
@@ -360,7 +412,6 @@ class _RegisterProprietaireScreenState
                           ),
                           child: Column(
                             children: [
-                              // ── Prénom / Nom ──
                               Row(
                                 children: [
                                   Expanded(
@@ -387,8 +438,6 @@ class _RegisterProprietaireScreenState
                                 ],
                               ),
                               const SizedBox(height: 12),
-
-                              // ── Âge ──
                               _neonField(
                                 ctrl: _ageCtrl,
                                 fn: _fnAge,
@@ -407,8 +456,6 @@ class _RegisterProprietaireScreenState
                                 },
                               ),
                               const SizedBox(height: 12),
-
-                              // ── Email + Vérifier ──
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -470,8 +517,6 @@ class _RegisterProprietaireScreenState
                                 ],
                               ),
                               const SizedBox(height: 12),
-
-                              // ── Téléphone ──
                               _neonField(
                                 ctrl: _telCtrl,
                                 fn: _fnTel,
@@ -500,8 +545,6 @@ class _RegisterProprietaireScreenState
                                 },
                               ),
                               const SizedBox(height: 12),
-
-                              // ── Adresse ──
                               _neonField(
                                 ctrl: _adresseCtrl,
                                 fn: _fnAdresse,
@@ -511,8 +554,6 @@ class _RegisterProprietaireScreenState
                                 iconColor: _neonPurple,
                               ),
                               const SizedBox(height: 12),
-
-                              // ── Numéro d'immatriculation ──
                               _neonField(
                                 ctrl: _numeroCtrl,
                                 fn: _fnNumero,
@@ -537,8 +578,6 @@ class _RegisterProprietaireScreenState
                                 },
                               ),
                               const SizedBox(height: 12),
-
-                              // ── Mot de passe ──
                               _neonField(
                                 ctrl: _passCtrl,
                                 fn: _fnPass,
@@ -563,8 +602,6 @@ class _RegisterProprietaireScreenState
                                     : null,
                               ),
                               const SizedBox(height: 12),
-
-                              // ── Confirmer mot de passe ──
                               _neonField(
                                 ctrl: _confirmCtrl,
                                 fn: _fnConfirm,
@@ -589,8 +626,6 @@ class _RegisterProprietaireScreenState
                                     : null,
                               ),
                               const SizedBox(height: 16),
-
-                              // ── Info traitement ──
                               Container(
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
@@ -637,8 +672,6 @@ class _RegisterProprietaireScreenState
                                 ),
                               ),
                               const SizedBox(height: 20),
-
-                              // ── Bouton Envoyer ──
                               SizedBox(
                                 width: double.infinity,
                                 height: 54,
@@ -777,9 +810,6 @@ class _RegisterProprietaireScreenState
   }
 }
 
-// ══════════════════════════════════════════════════
-// GLASS BUTTON
-// ══════════════════════════════════════════════════
 class _GlassButton extends StatelessWidget {
   final Widget child;
   final VoidCallback onTap;

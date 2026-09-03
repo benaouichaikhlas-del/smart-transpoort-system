@@ -17,9 +17,42 @@ const AdminModel = {
 
   compteEmailExiste: async (email) => {
     const r = await pool.query(
-      'SELECT id FROM compte WHERE email = $1', [email]
+      'SELECT id FROM compte WHERE LOWER(email) = LOWER($1)', [email]
     );
     return r.rows.length > 0;
+  },
+
+  // ✅ جيب الحساب بالإيميل (case-insensitive)
+  getCompteByEmail: async (email) => {
+    const r = await pool.query(
+      'SELECT * FROM compte WHERE LOWER(email) = LOWER($1)', [email]
+    );
+    return r.rows[0];
+  },
+
+  // ✅ حدث الباسورد
+  updateComptePassword: async (id, motDePasseHash) => {
+    await pool.query(
+      'UPDATE compte SET mot_de_passe = $1 WHERE id = $2',
+      [motDePasseHash, id]
+    );
+  },
+
+  // ✅ فعل الحساب وخليه proprietaire (هادي لازمة!)
+  activerCompteProprietaire: async (id) => {
+    const r = await pool.query(
+      `UPDATE compte SET actif = true, role = 'proprietaire' WHERE id = $1 RETURNING id, email, actif, role`,
+      [id]
+    );
+    return r.rows[0];
+  },
+
+  // ✅ شوف واش proprietaire موجود
+  getProprietaireByEmail: async (email) => {
+    const r = await pool.query(
+      'SELECT * FROM proprietaire WHERE LOWER(email) = LOWER($1)', [email]
+    );
+    return r.rows[0];
   },
 
   creerCompteProprietaire: async (email, motDePasseHash) => {
@@ -31,11 +64,11 @@ const AdminModel = {
     return r.rows[0].id;
   },
 
-  creerProprietaire: async ({ nom, email, tel, adresse, compteId }) => {
+  creerProprietaire: async ({ nom, prenom, email, tel, adresse, compteId, age }) => {
     await pool.query(
-      `INSERT INTO proprietaire (nom, email, tel, adresse, compte_id)
-       VALUES ($1,$2,$3,$4,$5)`,
-      [nom, email, tel, adresse, compteId]
+      `INSERT INTO proprietaire (nom, prenom, email, tel, adresse, compte_id, age)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [nom, prenom || null, email, tel || null, adresse || null, compteId, age || null]
     );
   },
 
@@ -62,21 +95,23 @@ const AdminModel = {
 
   desactiverCompte: async (email) => {
     await pool.query(
-      `UPDATE compte SET actif = false WHERE email = $1`, [email]
+      `UPDATE compte SET actif = false WHERE LOWER(email) = LOWER($1)`, [email]
     );
   },
 
   reactiverCompte: async (email) => {
     await pool.query(
-      `UPDATE compte SET actif = true WHERE email = $1`, [email]
+      `UPDATE compte SET actif = true WHERE LOWER(email) = LOWER($1)`, [email]
     );
   },
-supprimerDemande: async (id) => {
-  const r = await pool.query(
-    `DELETE FROM demande_inscription WHERE id = $1 RETURNING *`, [id]
-  );
-  return r.rows[0];
-},
+
+  supprimerDemande: async (id) => {
+    const r = await pool.query(
+      `DELETE FROM demande_inscription WHERE id = $1 RETURNING *`, [id]
+    );
+    return r.rows[0];
+  },
+
   getFeedbacks: async () => {
     const r = await pool.query(
       `SELECT f.*,
@@ -123,7 +158,6 @@ supprimerDemande: async (id) => {
     );
   },
 
-  // ✅ هذه لازم تكون موجودة!
   getSignalementById: async (id) => {
     const r = await pool.query(
       'SELECT * FROM signalement WHERE id = $1', [id]

@@ -2,12 +2,12 @@ const pool = require('../db/pool');
 
 const AuthModel = {
 
-  getByEmail: async (email) => {
-    const r = await pool.query(
-      'SELECT * FROM compte WHERE email = $1', [email]
-    );
-    return r.rows[0];
-  },
+ getByEmail: async (email) => {
+  const r = await pool.query(
+    'SELECT * FROM compte WHERE LOWER(email) = LOWER($1)', [email]
+  );
+  return r.rows[0];
+},
 
   getById: async (id) => {
     const r = await pool.query(
