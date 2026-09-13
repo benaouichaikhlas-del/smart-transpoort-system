@@ -16,16 +16,19 @@ class EtatBusScreen extends StatefulWidget {
 
 class _EtatBusScreenState extends State<EtatBusScreen>
     with SingleTickerProviderStateMixin {
+  static const Color _green = Color(0xFF34D399);
+  static const Color _red = Color(0xFFEF4444);
+  static const Color _amber = Color(0xFFFBBF24);
+  static const Color _blue = Color(0xFF8B8CF6);
+
   List<dynamic> _vehicules = [];
   bool _isLoading = true;
   String? _errorMsg;
 
-  // Socket + Timer
   IO.Socket? _socket;
   Timer? _refreshTimer;
   bool _socketConnected = false;
 
-  // Animation pour pulse
   late AnimationController _pulseCtrl;
 
   @override
@@ -38,7 +41,6 @@ class _EtatBusScreenState extends State<EtatBusScreen>
 
     _load();
     _initSocket();
-    // Fallback refresh
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 30),
       (_) {
@@ -77,8 +79,6 @@ class _EtatBusScreenState extends State<EtatBusScreen>
     _socket!.onConnect((_) {
       debugPrint('🔌 EtatBusSocket connecté');
       setState(() => _socketConnected = true);
-
-      // ← JOIN ROOM PROPRIÉTAIRE
       _socket!.emit('join_proprietaire', {'proprietaire_id': _userId});
     });
 
@@ -87,7 +87,6 @@ class _EtatBusScreenState extends State<EtatBusScreen>
       setState(() => _socketConnected = false);
     });
 
-    // 🚨 PANNE DÉCLARÉE PAR CONDUCTEUR
     _socket!.on('panne_declaree', (data) {
       debugPrint('🚨 Panne reçue: $data');
       if (!mounted) return;
@@ -107,11 +106,10 @@ class _EtatBusScreenState extends State<EtatBusScreen>
         'a déclaré une panne!\n'
         '🚌 ${data['immatriculation'] ?? ''}\n'
         '🔧 ${data['type_panne'] ?? ''}',
-        AppTheme.error,
+        _red,
       );
     });
 
-    // ✅ PANNE RÉSOLUE
     _socket!.on('panne_resolue', (data) {
       debugPrint('✅ Panne résolue: $data');
       if (!mounted) return;
@@ -128,11 +126,10 @@ class _EtatBusScreenState extends State<EtatBusScreen>
 
       _showSnack(
         '✅ Véhicule réparé: ${data['immatriculation'] ?? ''}',
-        AppTheme.secondary,
+        _green,
       );
     });
 
-    // ⏱️ RETARD DÉCLARÉ
     _socket!.on('retard_declare', (data) {
       debugPrint('⏱️ Retard reçu: $data');
       if (!mounted) return;
@@ -140,7 +137,7 @@ class _EtatBusScreenState extends State<EtatBusScreen>
       _showSnack(
         '⏱️ Retard déclaré — Ligne ${data['ligne']?['numero'] ?? ''}\n'
         '${data['duree_minutes']} min — ${data['motif']}',
-        AppTheme.warning,
+        _amber,
       );
     });
   }
@@ -223,9 +220,9 @@ class _EtatBusScreenState extends State<EtatBusScreen>
           final panneInfo = v['panne_info'];
 
           return AlertDialog(
-            backgroundColor: AppTheme.surface,
+            backgroundColor: const Color(0xFF131324),
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             title: Row(children: [
@@ -268,9 +265,8 @@ class _EtatBusScreenState extends State<EtatBusScreen>
             content: loading
                 ? const SizedBox(
                     height: 80,
-                    child: Center(
-                        child:
-                            CircularProgressIndicator(color: AppTheme.primary)))
+                    child:
+                        Center(child: CircularProgressIndicator(color: _blue)))
                 : SingleChildScrollView(
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,30 +274,28 @@ class _EtatBusScreenState extends State<EtatBusScreen>
                           const SizedBox(height: 8),
                           _detailTile(Icons.event_seat_outlined,
                               '${v['capacite'] ?? '—'} places', Colors.white54),
-
-                          // ← PANNE INFO SI DISPONIBLE
                           if (panneInfo != null) ...[
                             const SizedBox(height: 12),
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: AppTheme.error.withOpacity(0.08),
+                                color: _red.withOpacity(0.08),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                    color: AppTheme.error.withOpacity(0.3)),
+                                border:
+                                    Border.all(color: _red.withOpacity(0.3)),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
+                                  const Row(
                                     children: [
-                                      const Icon(Icons.warning_amber_rounded,
-                                          color: AppTheme.error, size: 16),
-                                      const SizedBox(width: 8),
+                                      Icon(Icons.warning_amber_rounded,
+                                          color: _red, size: 16),
+                                      SizedBox(width: 8),
                                       Text(
                                         'Panne déclarée',
                                         style: TextStyle(
-                                            color: AppTheme.error,
+                                            color: _red,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 13),
                                       ),
@@ -326,21 +320,17 @@ class _EtatBusScreenState extends State<EtatBusScreen>
                               ),
                             ),
                           ],
-
                           const Divider(color: Colors.white12, height: 20),
-
-                          // ── Conducteur ──
                           _sectionTitle('Conducteur affecté'),
                           const SizedBox(height: 8),
                           conducteur != null
                               ? Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.primary.withOpacity(0.08),
+                                    color: _blue.withOpacity(0.08),
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                        color:
-                                            AppTheme.primary.withOpacity(0.2)),
+                                        color: _blue.withOpacity(0.2)),
                                   ),
                                   child: Column(children: [
                                     _detailTile(
@@ -357,32 +347,28 @@ class _EtatBusScreenState extends State<EtatBusScreen>
                                       _detailTile(
                                           Icons.route_outlined,
                                           'Ligne ${conducteur['ligne_numero']}${conducteur['ligne_nom'] != null ? ' — ${conducteur['ligne_nom']}' : ''}',
-                                          AppTheme.warning),
+                                          _amber),
                                     ],
                                   ]),
                                 )
                               : _emptyMsg('Aucun conducteur affecté'),
-
                           const Divider(color: Colors.white12, height: 20),
-
-                          // ── Position GPS ──
                           _sectionTitle('Position GPS'),
                           const SizedBox(height: 8),
                           position != null
                               ? Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.secondary.withOpacity(0.08),
+                                    color: _green.withOpacity(0.08),
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                        color: AppTheme.secondary
-                                            .withOpacity(0.2)),
+                                        color: _green.withOpacity(0.2)),
                                   ),
                                   child: Column(children: [
                                     _detailTile(
                                         Icons.speed_outlined,
                                         '${position['vitesse'] ?? 0} km/h',
-                                        AppTheme.secondary),
+                                        _green),
                                     const SizedBox(height: 6),
                                     _detailTile(
                                         Icons.access_time_outlined,
@@ -391,37 +377,31 @@ class _EtatBusScreenState extends State<EtatBusScreen>
                                   ]),
                                 )
                               : _emptyMsg('Véhicule non géolocalisé'),
-
                           const Divider(color: Colors.white12, height: 20),
-
-                          // ── Pannes ──
                           _sectionTitle('Pannes déclarées'),
                           const SizedBox(height: 8),
-
                           if (etat == 'en panne')
                             Container(
                               padding: const EdgeInsets.all(10),
                               margin: const EdgeInsets.only(bottom: 8),
                               decoration: BoxDecoration(
-                                color: AppTheme.error.withOpacity(0.1),
+                                color: _red.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                    color: AppTheme.error.withOpacity(0.3)),
+                                border:
+                                    Border.all(color: _red.withOpacity(0.3)),
                               ),
                               child: const Row(children: [
                                 Icon(Icons.warning_amber_rounded,
-                                    color: AppTheme.error, size: 16),
+                                    color: _red, size: 16),
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     'Ce véhicule est en panne. Voir les déclarations ci-dessous.',
-                                    style: TextStyle(
-                                        color: AppTheme.error, fontSize: 12),
+                                    style: TextStyle(color: _red, fontSize: 12),
                                   ),
                                 ),
                               ]),
                             ),
-
                           pannes.isNotEmpty
                               ? Column(
                                   children: pannes
@@ -430,13 +410,12 @@ class _EtatBusScreenState extends State<EtatBusScreen>
                                                 bottom: 8),
                                             padding: const EdgeInsets.all(10),
                                             decoration: BoxDecoration(
-                                              color: AppTheme.error
-                                                  .withOpacity(0.06),
+                                              color: _red.withOpacity(0.06),
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                               border: Border.all(
-                                                  color: AppTheme.error
-                                                      .withOpacity(0.15)),
+                                                  color:
+                                                      _red.withOpacity(0.15)),
                                             ),
                                             child: Column(
                                                 crossAxisAlignment:
@@ -446,7 +425,7 @@ class _EtatBusScreenState extends State<EtatBusScreen>
                                                     const Icon(
                                                         Icons
                                                             .build_circle_outlined,
-                                                        color: AppTheme.error,
+                                                        color: _red,
                                                         size: 14),
                                                     const SizedBox(width: 6),
                                                     Expanded(
@@ -478,10 +457,11 @@ class _EtatBusScreenState extends State<EtatBusScreen>
                                                       const SizedBox(width: 8),
                                                       Text(
                                                           'Ligne ${p['ligne_numero']}',
-                                                          style: const TextStyle(
-                                                              color: AppTheme
-                                                                  .warning,
-                                                              fontSize: 10)),
+                                                          style:
+                                                              const TextStyle(
+                                                                  color: _amber,
+                                                                  fontSize:
+                                                                      10)),
                                                     ],
                                                   ]),
                                                 ]),
@@ -495,7 +475,7 @@ class _EtatBusScreenState extends State<EtatBusScreen>
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: _blue,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
@@ -515,67 +495,77 @@ class _EtatBusScreenState extends State<EtatBusScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: AppTheme.surface,
-        leading: const BackButton(color: Colors.white),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('État des Véhicules',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold)),
-            Text('${_vehicules.length} véhicule(s)',
-                style: const TextStyle(color: Colors.white54, fontSize: 11)),
-          ],
-        ),
-        actions: [
-          // ← Socket status indicator
+      backgroundColor: const Color(0xFF0B0B16),
+      body: SafeArea(
+        child: Column(children: [
+          // ── Header style maquette ──
           Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Center(
-              child: Container(
-                width: 8,
-                height: 8,
+            padding: const EdgeInsets.fromLTRB(12, 10, 16, 14),
+            child: Row(children: [
+              const BackButton(color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('État des Véhicules',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 3),
+                      Text('${_vehicules.length} véhicule(s)',
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 12.5)),
+                    ]),
+              ),
+              // Indicateur socket
+              Container(
+                width: 11,
+                height: 11,
                 decoration: BoxDecoration(
-                  color: _socketConnected ? AppTheme.secondary : AppTheme.error,
+                  color: _socketConnected ? _green : _red,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: (_socketConnected
-                              ? AppTheme.secondary
-                              : AppTheme.error)
-                          .withOpacity(0.5),
-                      blurRadius: 6,
+                      color:
+                          (_socketConnected ? _green : _red).withOpacity(0.6),
+                      blurRadius: 8,
                       spreadRadius: 1,
                     ),
                   ],
                 ),
               ),
-            ),
+              const SizedBox(width: 14),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.refresh_rounded,
+                      color: Colors.white, size: 20),
+                  onPressed: _load,
+                ),
+              ),
+            ]),
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _load,
-          ),
-        ],
+
+          Expanded(child: _buildBody()),
+        ]),
       ),
-      body: _buildBody(),
     );
   }
 
   Widget _buildBody() {
     if (_isLoading)
-      return const Center(
-          child: CircularProgressIndicator(color: AppTheme.primary));
+      return const Center(child: CircularProgressIndicator(color: _blue));
     if (_errorMsg != null) {
       return Center(
           child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, color: AppTheme.error, size: 60),
+          const Icon(Icons.error_outline, color: _red, size: 60),
           const SizedBox(height: 16),
           Text(_errorMsg!,
               textAlign: TextAlign.center,
@@ -587,7 +577,7 @@ class _EtatBusScreenState extends State<EtatBusScreen>
             label:
                 const Text('Réessayer', style: TextStyle(color: Colors.white)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
+              backgroundColor: _blue,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),
@@ -615,23 +605,39 @@ class _EtatBusScreenState extends State<EtatBusScreen>
         _vehicules.where((v) => v['etat'] == 'en maintenance').length;
 
     return Column(children: [
-      // Stats bar
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        color: AppTheme.surface,
+      // ── 4 cartes stats style maquette ──
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 6, 20, 14),
         child: Row(children: [
-          _statChip(_vehicules.length.toString(), 'Total', Colors.white54),
-          const SizedBox(width: 8),
-          _statChip(actifs.toString(), 'Actifs', AppTheme.secondary),
-          const SizedBox(width: 8),
-          _statChip(pannes.toString(), 'En panne', AppTheme.error),
-          const SizedBox(width: 8),
-          _statChip(maintenances.toString(), 'Maint.', AppTheme.warning),
+          _statCard(
+              icon: Icons.directions_bus_filled_rounded,
+              count: _vehicules.length,
+              label: 'Total',
+              color: _blue),
+          const SizedBox(width: 10),
+          _statCard(
+              icon: Icons.check_circle_outline_rounded,
+              count: actifs,
+              label: 'Actifs',
+              color: _green),
+          const SizedBox(width: 10),
+          _statCard(
+              icon: Icons.warning_amber_rounded,
+              count: pannes,
+              label: 'En panne',
+              color: _red),
+          const SizedBox(width: 10),
+          _statCard(
+              icon: Icons.build_outlined,
+              count: maintenances,
+              label: 'Maint.',
+              color: _amber),
         ]),
       ),
+      // ── Liste des véhicules ──
       Expanded(
         child: ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           itemCount: _vehicules.length,
           itemBuilder: (_, i) {
             final v = _vehicules[i];
@@ -648,44 +654,37 @@ class _EtatBusScreenState extends State<EtatBusScreen>
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: color.withOpacity(0.3)),
-                    boxShadow: etat == 'en panne'
-                        ? [
-                            BoxShadow(
-                              color: AppTheme.error.withOpacity(0.1),
-                              blurRadius: 8,
-                              spreadRadius: 1,
-                            ),
-                          ]
-                        : null,
+                    color: const Color(0xFF131324),
+                    borderRadius: BorderRadius.circular(20),
+                    border:
+                        Border.all(color: color.withOpacity(0.28), width: 1.2),
                   ),
                   child: Row(children: [
-                    // Icon avec pulse si en panne
+                    // Icône bus (pulse si panne)
                     etat == 'en panne'
                         ? AnimatedBuilder(
                             animation: _pulseCtrl,
                             builder: (_, child) => Container(
-                              padding: const EdgeInsets.all(10),
+                              width: 58,
+                              height: 58,
                               decoration: BoxDecoration(
                                 color: color.withOpacity(
-                                  0.12 + (_pulseCtrl.value * 0.1),
-                                ),
-                                borderRadius: BorderRadius.circular(12),
+                                    0.12 + (_pulseCtrl.value * 0.12)),
+                                borderRadius: BorderRadius.circular(16),
                               ),
                               child:
-                                  Icon(_etatIcon(etat), color: color, size: 24),
+                                  Icon(_etatIcon(etat), color: color, size: 28),
                             ),
                           )
                         : Container(
-                            padding: const EdgeInsets.all(10),
+                            width: 58,
+                            height: 58,
                             decoration: BoxDecoration(
-                              color: color.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(12),
+                              color: color.withOpacity(0.13),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             child:
-                                Icon(_etatIcon(etat), color: color, size: 24),
+                                Icon(_etatIcon(etat), color: color, size: 28),
                           ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -695,49 +694,49 @@ class _EtatBusScreenState extends State<EtatBusScreen>
                           Text('${v['marque'] ?? ''} ${v['modele'] ?? ''}',
                               style: const TextStyle(
                                   color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14)),
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15)),
                           const SizedBox(height: 4),
                           Text(v['immatriculation'] ?? '',
                               style: const TextStyle(
-                                  color: Colors.white54, fontSize: 12)),
-                          const SizedBox(height: 6),
+                                  color: Colors.white54, fontSize: 12.5)),
+                          const SizedBox(height: 8),
                           Row(children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
+                                  horizontal: 9, vertical: 4),
                               decoration: BoxDecoration(
-                                color: color.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(6),
+                                color: color.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(7),
                               ),
                               child: Text(etat,
                                   style: TextStyle(
                                       color: color,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600)),
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700)),
                             ),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.event_seat_outlined,
-                                color: Colors.white38, size: 12),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 10),
+                            Icon(Icons.event_seat_outlined,
+                                color: Colors.white38, size: 13),
+                            const SizedBox(width: 5),
                             Text('${v['capacite'] ?? '—'} places',
                                 style: const TextStyle(
-                                    color: Colors.white38, fontSize: 11)),
+                                    color: Colors.white38, fontSize: 11.5)),
                             if (hasPanne) ...[
                               const SizedBox(width: 8),
                               const Icon(Icons.warning_amber,
-                                  color: AppTheme.error, size: 12),
+                                  color: _red, size: 12),
                               const SizedBox(width: 4),
                               Text(
                                 '${v['panne_info']['type_panne'] ?? 'Panne'}',
-                                style: const TextStyle(
-                                    color: AppTheme.error, fontSize: 10),
+                                style:
+                                    const TextStyle(color: _red, fontSize: 10),
                               ),
                             ],
                           ]),
                         ])),
-                    const Icon(Icons.arrow_forward_ios,
-                        color: Colors.white24, size: 14),
+                    const Icon(Icons.chevron_right_rounded,
+                        color: Colors.white38, size: 22),
                   ]),
                 ),
               ),
@@ -746,6 +745,38 @@ class _EtatBusScreenState extends State<EtatBusScreen>
         ),
       ),
     ]);
+  }
+
+  // ═══ Carte stat style maquette (icône en haut, nombre, label) ═══
+  Widget _statCard({
+    required IconData icon,
+    required int count,
+    required String label,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.07),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withOpacity(0.3), width: 1.2),
+        ),
+        child: Column(children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 8),
+          Text('$count',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22)),
+          const SizedBox(height: 2),
+          Text(label,
+              style: TextStyle(
+                  color: color, fontSize: 11, fontWeight: FontWeight.w700)),
+        ]),
+      ),
+    );
   }
 
   Widget _sectionTitle(String t) => Text(t,
@@ -775,13 +806,13 @@ class _EtatBusScreenState extends State<EtatBusScreen>
     Color c;
     switch (statut) {
       case 'accepte':
-        c = AppTheme.secondary;
+        c = _green;
         break;
       case 'refuse':
-        c = AppTheme.error;
+        c = _red;
         break;
       default:
-        c = AppTheme.warning;
+        c = _amber;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -792,24 +823,6 @@ class _EtatBusScreenState extends State<EtatBusScreen>
               TextStyle(color: c, fontSize: 10, fontWeight: FontWeight.w600)),
     );
   }
-
-  Widget _statChip(String count, String label, Color color) => Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: color.withOpacity(0.2)),
-          ),
-          child: Column(children: [
-            Text(count,
-                style: TextStyle(
-                    color: color, fontWeight: FontWeight.bold, fontSize: 18)),
-            Text(label,
-                style: TextStyle(color: color.withOpacity(0.7), fontSize: 10)),
-          ]),
-        ),
-      );
 
   String _formatTime(dynamic ts) {
     if (ts == null) return '—';
@@ -834,11 +847,11 @@ class _EtatBusScreenState extends State<EtatBusScreen>
   Color _etatColor(String etat) {
     switch (etat) {
       case 'actif':
-        return AppTheme.secondary;
+        return _green;
       case 'en panne':
-        return AppTheme.error;
+        return _red;
       case 'en maintenance':
-        return AppTheme.warning;
+        return _amber;
       default:
         return Colors.white38;
     }
@@ -847,9 +860,9 @@ class _EtatBusScreenState extends State<EtatBusScreen>
   IconData _etatIcon(String etat) {
     switch (etat) {
       case 'en panne':
-        return Icons.build_circle_outlined;
+        return Icons.warning_amber_rounded;
       case 'en maintenance':
-        return Icons.settings_outlined;
+        return Icons.build_outlined;
       default:
         return Icons.directions_bus_rounded;
     }

@@ -15,6 +15,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   static const Color _bg = Color(0xFF0A0E1A);
+  static const Color _headerBg = Color(0xFF0E1526);
   static const Color _card = Color(0xFF111827);
   static const Color _surface = Color(0xFF161D2E);
   static const Color _primary = Color(0xFF3B82F6);
@@ -27,15 +28,12 @@ class _MapScreenState extends State<MapScreen> {
   // ══════════════════════════════════════════
   // ⭐ بيانات الحافلات: 3 خرائط منفصلة
   // ══════════════════════════════════════════
-  // _busesInfo       → المعلومات الكاملة (ligne, immatriculation...)
-  // _targetPositions → آخر موقع GPS حقيقي وصل من السائق (الهدف)
-  // _displayedPositions → الموقع المعروض دابا (كيتحرك تدريجيا نحو الهدف)
   final Map<String, Map<String, dynamic>> _busesInfo = {};
   final Map<String, LatLng> _targetPositions = {};
   final Map<String, LatLng> _displayedPositions = {};
 
-  Timer? _animationTicker; // كيحرك الماركرات 20 مرة فالثانية
-  Timer? _fallbackTimer; // إلا الـ Socket طاح، يسول HTTP كل 15 ثانية
+  Timer? _animationTicker;
+  Timer? _fallbackTimer;
   IO.Socket? _socket;
 
   List<Map<String, dynamic>> _lignes = [];
@@ -66,18 +64,16 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   // ════════════════════════════════════════════
-  // ⭐ التحريك السلس — القلب ديال الميزة
+  // ⭐ التحريك السلس
   // ════════════════════════════════════════════
   void _startAnimationTicker() {
     _animationTicker = Timer.periodic(const Duration(milliseconds: 33), (_) {
-      // 33ms = تقريبا 30 صورة فالثانية، كافي لحركة سلسة بلا ما يتقل على الهاتف
       if (!mounted) return;
       if (_targetPositions.isEmpty) return;
 
       setState(() {
         _targetPositions.forEach((busId, target) {
           final current = _displayedPositions[busId] ?? target;
-          // lerp (linear interpolation): كيقرب 10% من المسافة المتبقية كل تيك
           const factor = 0.10;
           final newLat =
               current.latitude + (target.latitude - current.latitude) * factor;
@@ -112,7 +108,6 @@ class _MapScreenState extends State<MapScreen> {
     _socket!.onDisconnect((_) {
       if (!mounted) return;
       setState(() => _connected = false);
-      // إلا الـ Socket طاح، نبداو نسولو HTTP كل 15 ثانية بدل ما نبقاو بلا تحديثات
       _fallbackTimer ??= Timer.periodic(
         const Duration(seconds: 15),
         (_) => _chargerTrajetsActifs(_ligneActive?['id']?.toString()),
@@ -129,7 +124,6 @@ class _MapScreenState extends State<MapScreen> {
 
       if (lat == null || lng == null || conducteurId == null) return;
 
-      // فلترة: نبينو غير الحافلات ديال الخط المختار (إلا كاين خط مختار)
       if (_ligneActive != null && ligneId != _ligneActive!['id']?.toString()) {
         return;
       }
@@ -142,7 +136,6 @@ class _MapScreenState extends State<MapScreen> {
           ...data,
         };
         _targetPositions[conducteurId] = LatLng(lat, lng);
-        // أول مرة نشوفو هاد الحافلة، نحطوها مباشرة (بلا ما "تطير" من نقطة (0,0))
         _displayedPositions.putIfAbsent(conducteurId, () => LatLng(lat, lng));
       });
     });
@@ -160,7 +153,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   // ════════════════════════════════════════════
-  // API — تحميل الخطوط + snapshot أولي
+  // API
   // ════════════════════════════════════════════
   Future<void> _chargerLignes() async {
     try {
@@ -238,7 +231,6 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _ligneActive = ligne;
       _showSuggestions = false;
-      // نمسحو غير الحافلات لي ماشي ديال هاد الخط
       _busesInfo
           .removeWhere((k, v) => v['ligne_id'] != ligne['id']?.toString());
       _targetPositions.removeWhere((k, v) => !_busesInfo.containsKey(k));
@@ -276,6 +268,7 @@ class _MapScreenState extends State<MapScreen> {
       backgroundColor: _bg,
       body: Stack(
         children: [
+          // ═══ الخريطة (tiles فاتحة كيما فالصورة) ═══
           FlutterMap(
             mapController: _mapCtrl,
             options: const MapOptions(
@@ -285,43 +278,69 @@ class _MapScreenState extends State<MapScreen> {
             children: [
               TileLayer(
                 urlTemplate:
-                    'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
                 subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.example.frontend',
               ),
-              // ⭐ الماركرات كتقرا من _displayedPositions (المتحركة) ماشي _targetPositions
               MarkerLayer(
                 markers: _displayedPositions.entries.map((e) {
                   final info = _busesInfo[e.key] ?? {};
                   final ligne = info['ligne_numero'] ?? info['ligne_id'] ?? '?';
                   return Marker(
                     point: e.value,
-                    width: 40,
-                    height: 40,
+                    width: 56,
+                    height: 70,
+                    alignment: Alignment.topCenter,
                     child: GestureDetector(
                       onTap: () => _showBusInfo(info),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: _primary,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: _primary.withOpacity(0.4),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: Center(
+                      child: Column(children: [
+                        // Badge numéro de ligne (pilule bleue)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _primary,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _primary.withOpacity(0.45),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
                           child: Text(
                             '$ligne',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 3),
+                        // Icône bus dans un cercle
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: _primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: Colors.white.withOpacity(0.6), width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 8,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.directions_bus_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ]),
                     ),
                   );
                 }).toList(),
@@ -329,24 +348,88 @@ class _MapScreenState extends State<MapScreen> {
             ],
           ),
 
-          // ── Barre de recherche ──
+          // ═══ En-tête sombre (titre + boutons) ═══
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              color: _headerBg,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                  child: Row(children: [
+                    // Retour
+                    _headerBtn(Icons.arrow_back_rounded,
+                        onTap: () => Navigator.pop(context)),
+                    const SizedBox(width: 14),
+                    // Titre + compteur
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Suivi des Bus',
+                                style: TextStyle(
+                                    color: _text,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${_displayedPositions.length} bus en service',
+                              style: const TextStyle(
+                                  color: _primary,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ]),
+                    ),
+                    // Indicateur connexion (cercle)
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: _connected ? _accent : _muted,
+                        shape: BoxShape.circle,
+                        boxShadow: _connected
+                            ? [
+                                BoxShadow(
+                                    color: _accent.withOpacity(0.6),
+                                    blurRadius: 6)
+                              ]
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    _headerBtn(Icons.refresh_rounded, onTap: () {
+                      _chargerLignes();
+                      _chargerTrajetsActifs(_ligneActive?['id']?.toString());
+                    }),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+
+          // ═══ Barre de recherche ═══
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                padding: const EdgeInsets.fromLTRB(16, 86, 16, 0),
                 child: Column(
                   children: [
                     Container(
                       decoration: BoxDecoration(
                         color: _card,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: _primary.withOpacity(0.3)),
+                        borderRadius: BorderRadius.circular(14),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.06)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withOpacity(0.35),
                             blurRadius: 12,
                           ),
                         ],
@@ -354,18 +437,9 @@ class _MapScreenState extends State<MapScreen> {
                       child: Row(
                         children: [
                           const SizedBox(width: 14),
-                          GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: const Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              color: _muted,
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
                           const Icon(Icons.search_rounded,
-                              color: _primary, size: 20),
-                          const SizedBox(width: 8),
+                              color: _muted, size: 20),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: TextField(
                               controller: _searchCtrl,
@@ -373,9 +447,10 @@ class _MapScreenState extends State<MapScreen> {
                               style:
                                   const TextStyle(color: _text, fontSize: 14),
                               decoration: InputDecoration(
-                                hintText: 'Rechercher une ligne...',
+                                hintText:
+                                    'Rechercher par numéro ou nom de ligne...',
                                 hintStyle:
-                                    TextStyle(color: _muted, fontSize: 14),
+                                    TextStyle(color: _muted, fontSize: 13.5),
                                 border: InputBorder.none,
                                 isDense: true,
                                 contentPadding:
@@ -407,6 +482,12 @@ class _MapScreenState extends State<MapScreen> {
                           color: _card,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: _primary.withOpacity(0.15)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.35),
+                              blurRadius: 12,
+                            ),
+                          ],
                         ),
                         child: ListView.separated(
                           shrinkWrap: true,
@@ -441,7 +522,8 @@ class _MapScreenState extends State<MapScreen> {
                                       color: _text, fontSize: 13)),
                               subtitle: Text(
                                 '${l['heure_debut'] ?? ''} → ${l['heure_fin'] ?? ''}',
-                                style: TextStyle(color: _muted, fontSize: 11),
+                                style: const TextStyle(
+                                    color: _muted, fontSize: 11),
                               ),
                               onTap: () => _selectionnerLigne(l),
                             );
@@ -454,91 +536,47 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
-          // ── Badge ligne active ──
+          // ═══ Badge ligne active ═══
           if (_ligneActive != null)
             Positioned(
-              top: 100,
+              top: 152,
               left: 16,
-              child: SafeArea(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: _primary.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withOpacity(0.3), blurRadius: 8),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.directions_bus_rounded,
-                          color: Colors.white, size: 16),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Ligne ${_ligneActive!['numero'] ?? ''}'
-                        ' — ${_ligneActive!['nom'] ?? ''}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-          // ── Indicateur connexion ──
-          Positioned(
-            top: 100,
-            right: 16,
-            child: SafeArea(
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: _card.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _connected
-                        ? _accent.withOpacity(0.5)
-                        : _muted.withOpacity(0.3),
-                  ),
+                  color: _card.withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _primary.withOpacity(0.4)),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.3), blurRadius: 8),
+                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: _connected ? _accent : _muted,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
+                    const Icon(Icons.directions_bus_rounded,
+                        color: _primary, size: 16),
                     const SizedBox(width: 6),
                     Text(
-                      _connected ? 'En direct' : 'Déconnecté',
-                      style: TextStyle(
-                        color: _connected ? _accent : _muted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
+                      'Ligne ${_ligneActive!['numero'] ?? ''}'
+                      ' — ${_ligneActive!['nom'] ?? ''}',
+                      style: const TextStyle(
+                        color: _text,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-          ),
 
-          // ── Boutons zoom ──
+          // ═══ Boutons zoom (à droite) ═══
           Positioned(
             right: 16,
-            bottom: 32,
+            bottom: _ligneActive != null ? 150 : 32,
             child: Column(
               children: [
                 _mapButton(Icons.my_location_rounded, color: _primary,
@@ -559,8 +597,121 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
+          // ═══ Carte infos ligne active (bas) ═══
+          if (_ligneActive != null) _buildBottomInfoCard(),
+
           if (_loading) const Center(child: CircularProgressIndicator()),
         ],
+      ),
+    );
+  }
+
+  // ── Carte du bas : Ligne + En service + Prochain arrêt + ETA ──
+  Widget _buildBottomInfoCard() {
+    // Première bus de la ligne pour extraire prochain arrêt / ETA
+    final firstBus = _busesInfo.values.firstOrNull ?? {};
+    final prochainArret = firstBus['prochain_arret'] ?? '—';
+    final etaMin = firstBus['eta_minutes'] ?? '—';
+    final distanceKm = firstBus['distance_km'] ?? '—';
+
+    return Positioned(
+      left: 16,
+      right: 16,
+      bottom: 24,
+      child: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: _card.withOpacity(0.97),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: _primary.withOpacity(0.25)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.45),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(children: [
+            // Icône bus
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: _primary,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(color: _primary.withOpacity(0.4), blurRadius: 10),
+                ],
+              ),
+              child: const Icon(Icons.directions_bus_rounded,
+                  color: Colors.white, size: 27),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Ligne ${_ligneActive!['numero'] ?? ''}',
+                        style: const TextStyle(
+                            color: _text,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Row(children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color:
+                              _displayedPositions.isNotEmpty ? _accent : _muted,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _displayedPositions.isNotEmpty
+                            ? 'En service'
+                            : 'Hors service',
+                        style: TextStyle(
+                          color:
+                              _displayedPositions.isNotEmpty ? _accent : _muted,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 10),
+                    const Text('Prochain arrêt',
+                        style: TextStyle(color: _muted, fontSize: 11.5)),
+                    const SizedBox(height: 2),
+                    Text('$prochainArret',
+                        style: const TextStyle(
+                            color: _text,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800)),
+                  ]),
+            ),
+            // ETA
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: _accent.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(children: [
+                Text('$etaMin min',
+                    style: const TextStyle(
+                        color: _accent,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800)),
+                Text('($distanceKm km)',
+                    style: const TextStyle(color: _muted, fontSize: 10.5)),
+              ]),
+            ),
+          ]),
+        ),
       ),
     );
   }
@@ -591,10 +742,25 @@ class _MapScreenState extends State<MapScreen> {
             if (immat.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text('Immatriculation: $immat',
-                  style: TextStyle(color: _muted, fontSize: 13)),
+                  style: const TextStyle(color: _muted, fontSize: 13)),
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _headerBtn(IconData icon, {required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.07),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
@@ -604,14 +770,14 @@ class _MapScreenState extends State<MapScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
-          color: _card.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(10),
+          color: _card.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: (color ?? _muted).withOpacity(0.3)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 6),
+            BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 8),
           ],
         ),
         child: Icon(icon, color: color ?? _muted, size: 20),

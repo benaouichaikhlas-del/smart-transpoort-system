@@ -1,7 +1,7 @@
 // core/constants/api_constants.dart
 class ApiConstants {
-  static const String socketUrl = 'http://192.168.1.9:3000';
-  static const String baseUrl = 'http://192.168.1.9:3000/api';
+  static const String socketUrl = 'http://192.168.1.11:3000';
+  static const String baseUrl = 'http://192.168.1.11:3000/api';
   static String get chatbot => '$passager/chatbot';
   // Auth
   static const String login = '$baseUrl/auth/login';

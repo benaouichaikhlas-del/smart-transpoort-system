@@ -50,19 +50,18 @@ const ProprietaireModel = {
 
   // ═══ FEEDBACKS / EVALUATIONS / SIGNALEMENTS ═══
   getFeedbacksPourMoi: async (proprietaireId) => {
-    const r = await pool.query(
-      `SELECT f.*, l.numero AS ligne_numero, l.nom AS ligne_nom,
-              c.email AS passager_email
-       FROM feedback f
-       LEFT JOIN ligne l ON l.id = f.ligne_id
-       LEFT JOIN proprietaire p ON p.id = l.proprietaire_id
-       LEFT JOIN compte c ON c.id = f.passager_id
-       WHERE p.id = $1 OR f.ligne_id IS NULL
-       ORDER BY f.created_at DESC`,
-      [proprietaireId]
-    );
-    return r.rows;
-  },
+  const r = await pool.query(
+    `SELECT f.*, l.numero AS ligne_numero, l.nom AS ligne_nom, c.email AS passager_email 
+     FROM feedback f 
+     JOIN ligne l ON l.id = f.ligne_id 
+     JOIN proprietaire p ON p.id = l.proprietaire_id 
+     LEFT JOIN compte c ON c.id = f.passager_id 
+     WHERE p.id = $1 
+     ORDER BY f.created_at DESC`,
+    [proprietaireId]
+  );
+  return r.rows;
+},
 
   getEvaluationsPourMoi: async (proprietaireId) => {
     const r = await pool.query(
@@ -81,19 +80,18 @@ const ProprietaireModel = {
   },
 
   getSignalementsPourMoi: async (proprietaireId) => {
-    const r = await pool.query(
-      `SELECT s.*, l.numero AS ligne_numero, l.nom AS ligne_nom,
-              c.email AS passager_email
-       FROM signalement s
-       LEFT JOIN ligne l ON l.id = s.ligne_id
-       LEFT JOIN proprietaire p ON p.id = l.proprietaire_id
-       LEFT JOIN compte c ON c.id = s.passager_id
-       WHERE p.id = $1 OR s.ligne_id IS NULL
-       ORDER BY s.created_at DESC`,
-      [proprietaireId]
-    );
-    return r.rows;
-  },
+  const r = await pool.query(
+    `SELECT s.*, l.numero AS ligne_numero, l.nom AS ligne_nom, c.email AS passager_email 
+     FROM signalement s 
+     JOIN ligne l ON l.id = s.ligne_id 
+     JOIN proprietaire p ON p.id = l.proprietaire_id 
+     LEFT JOIN compte c ON c.id = s.passager_id 
+     WHERE p.id = $1 
+     ORDER BY s.created_at DESC`,
+    [proprietaireId]
+  );
+  return r.rows;
+},
 
   // ═══════════════════════════════════════════
   // ⭐ DASHBOARD STATS — جديد

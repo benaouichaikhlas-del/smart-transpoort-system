@@ -8,8 +8,9 @@
     <application
         android:label="TransportDZ"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
-
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config">
         <!-- احذفي سطر google maps api key إذا كان موجود -->
 
         <activity

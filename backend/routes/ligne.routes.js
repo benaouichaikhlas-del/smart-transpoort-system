@@ -18,29 +18,27 @@ router.use((req, res, next) => {
   next();
 });
 
-// Public
+// ══════ PUBLIC (مسموح للجميع بدون توكن إجباري) ══════
 router.get('/vehicules/liste', verifierTokenOptional, ligneController.getVehicules);
 router.get('/', verifierTokenOptional, ligneController.getLignes);
+router.get('/:id/arrets', verifierTokenOptional, ligneController.getArrets);
+router.get('/:id/horaires', verifierTokenOptional, ligneController.getHoraires);
 
-// Auth
+// ══════ PROTECTED (يتطلب تسجيل الدخول) ══════
 router.use(verifierToken);
-
-router.get('/:id/arrets', ligneController.getArrets);
-router.get('/:id/horaires', ligneController.getHoraires);
 
 router.put('/:id/nb-bus', checkAdmin, ligneController.modifierNbBus);
 router.put('/:id/vehicule', ligneController.associerVehicule);
 router.put('/:id/arrets/:arretId', ligneController.modifierArret);
 router.put('/:id/horaires/:horaireId', ligneController.modifierHoraire);
 router.put('/:id', ligneController.modifierLigne);
-
 router.delete('/:id/arrets/:arretId', ligneController.supprimerArret);
 router.delete('/:id/horaires/:horaireId', ligneController.supprimerHoraire);
 router.delete('/:id', ligneController.supprimerLigne);
-
 router.post('/', ligneController.ajouterLigne);
 router.post('/:id/arrets', ligneController.ajouterArret);
 router.post('/:id/horaires', ligneController.ajouterHoraire);
 
 console.log('✅ ligne.routes.js EXPORTED');
-module.exports = router;    
+
+module.exports = router;

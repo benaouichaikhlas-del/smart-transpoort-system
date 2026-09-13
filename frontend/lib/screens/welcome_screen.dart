@@ -1204,6 +1204,39 @@ class _LigneDetailPage extends StatelessWidget {
   final Map<String, dynamic> ligne;
   const _LigneDetailPage({required this.ligne});
 
+  // دالة جلب الأوقات المصححة والمضمونة
+  Future<List<dynamic>> _fetchHoraires(dynamic rawLigneId) async {
+    final ligneId = rawLigneId is int
+        ? rawLigneId
+        : int.tryParse(rawLigneId?.toString() ?? '');
+
+    if (ligneId == null) return [];
+
+    try {
+      final r = await http
+          .get(Uri.parse('${ApiConstants.baseUrl}/ligne/$ligneId/horaires'))
+          .timeout(const Duration(seconds: 10));
+
+      if (r.statusCode == 200) {
+        final decoded = jsonDecode(r.body);
+        if (decoded is List) {
+          return decoded;
+        } else if (decoded is Map) {
+          if (decoded.containsKey('horaires') && decoded['horaires'] is List) {
+            return decoded['horaires'];
+          } else if (decoded.containsKey('data') && decoded['data'] is List) {
+            return decoded['data'];
+          }
+        }
+      } else {
+        debugPrint('❌ Erreur HTTP: ${r.statusCode} — ${r.body}');
+      }
+    } catch (e) {
+      debugPrint('❌ Erreur fetchHoraires: $e');
+    }
+    return [];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1307,15 +1340,17 @@ class _LigneDetailPage extends StatelessWidget {
                     fontSize: 18)),
             const SizedBox(height: 12),
             FutureBuilder<List<dynamic>>(
-              future: _fetchHoraires(ligne['id']),
+              future: _fetchHoraires(ligne['id'] ?? ligne['ligne_id']),
               builder: (ctx, snap) {
-                if (snap.connectionState == ConnectionState.waiting)
+                if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(
                       child:
                           CircularProgressIndicator(color: Color(0xFF8B5CF6)));
-                if (!snap.hasData || snap.data!.isEmpty)
+                }
+                if (!snap.hasData || snap.data!.isEmpty) {
                   return const Text('Aucun horaire disponible',
                       style: TextStyle(color: Color(0xFF94A3B8)));
+                }
                 return Column(
                   children: snap.data!.map((h) {
                     return Container(
@@ -1383,20 +1418,6 @@ class _LigneDetailPage extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<List<dynamic>> _fetchHoraires(int? ligneId) async {
-    if (ligneId == null) return [];
-    try {
-      final r = await http
-          .get(Uri.parse('${ApiConstants.baseUrl}/ligne/$ligneId/horaires'))
-          .timeout(const Duration(seconds: 10));
-      if (r.statusCode == 200) {
-        final data = jsonDecode(r.body);
-        if (data is List) return data;
-      }
-    } catch (_) {}
-    return [];
   }
 }
 
